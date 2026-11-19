@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iPAS 食品品保工程師（初級）萬題考古模擬考系統</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js 支援技能雷達圖 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- 頂部導覽列 -->
+    <header class="bg-indigo-700 shadow-md text-white sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="app.switchTab('home')">
+                <span class="bg-indigo-600 p-2 rounded-lg font-bold text-xl">🛡️ iPAS</span>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">食品品保工程師（初級）萬題考古庫</h1>
+                    <p class="text-xs text-indigo-200">國家級鑑定標準 • 循序初始化同步版</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <div id="user-status-display" class="hidden md:flex items-center space-x-2 text-xs bg-indigo-800 px-3 py-1.5 rounded-full">
+                    <span class="w-2 h-2 rounded-full bg-slate-400" id="cloud-dot"></span>
+                    <span id="user-email-text" class="text-indigo-100">檢查帳號中...</span>
+                </div>
+                <button id="auth-btn" onclick="app.openAuthModal()" class="bg-white text-indigo-700 hover:bg-indigo-50 font-bold px-4 py-2 rounded-lg text-sm transition shadow-sm cursor-pointer">
+                    ☁️ 雲端登入
+                </button>
+                <button onclick="app.factoryReset()" class="bg-red-600 hover:bg-red-700 text-white font-medium px-3 py-2 rounded-lg text-xs transition shadow-sm cursor-pointer" title="立即停止抓取並清空本機與雲端錯題及歷次考試資料">
+                    🗑️ 重置
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主內容區 -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6">
+        
+        <!-- 首頁儀表板 -->
+        <div id="view-home" class="space-y-6">
+            <div class="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-6 md:p-8 text-white shadow-lg flex flex-col md:flex-row justify-between items-center">
+                <div class="space-y-3 mb-6 md:mb-0">
+                    <span class="bg-indigo-500 text-indigo-100 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider">國家級能力鑑定 • 考試模式切換</span>
+                    <h2 class="text-2xl md:text-3xl font-bold">考點全涵蓋，智慧模擬與練習系統</h2>
+                    <p class="text-indigo-100 text-sm max-w-xl">
+                        正式考試標準：單科成績大於或等於 60 分且雙科平均大於或等於 70 分。單科練習模式則獨立顯示成績與單科解析。
+                    </p>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                    <button onclick="app.startOfficialExamSetup()" class="bg-amber-400 text-slate-900 hover:bg-amber-300 font-bold px-6 py-3 rounded-xl shadow transition text-center cursor-pointer">
+                        🏆 開始正式考試 (品保 -> 科學)
+                    </button>
+                    <button onclick="app.startPracticeSetup()" class="bg-white text-indigo-700 hover:bg-indigo-50 font-bold px-6 py-3 rounded-xl shadow transition text-center cursor-pointer">
+                        📖 單科自由練習
+                    </button>
+                    <button onclick="app.openRadarModal()" class="bg-indigo-800 text-white hover:bg-indigo-900 font-bold px-6 py-3 rounded-xl shadow transition border border-indigo-500 text-center cursor-pointer">
+                        📊 技能雷達圖
+                    </button>
+                </div>
+            </div>
+
+            <!-- 功能導覽卡片 -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div onclick="app.switchTab('wrong-book')" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition cursor-pointer flex items-center space-x-4">
+                    <div class="p-3 bg-red-50 text-red-600 rounded-xl text-2xl">📖</div>
+                    <div>
+                        <h3 class="font-bold text-lg text-slate-700">錯題解析與重練</h3>
+                        <p class="text-sm text-slate-500" id="home-wrong-count">等待帳號確認後載入錯題...</p>
+                    </div>
+                </div>
+
+                <div onclick="app.switchTab('history')" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition cursor-pointer flex items-center space-x-4">
+                    <div class="p-3 bg-blue-50 text-blue-600 rounded-xl text-2xl">📋</div>
+                    <div>
+                        <h3 class="font-bold text-lg text-slate-700">歷史作答記錄</h3>
+                        <p class="text-sm text-slate-500" id="home-history-count">等待帳號確認後載入記錄...</p>
+                    </div>
+                </div>
+
+                <div onclick="app.openRadarModal()" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition cursor-pointer flex items-center space-x-4">
+                    <div class="p-3 bg-purple-50 text-purple-600 rounded-xl text-2xl">🎯</div>
+                    <div>
+                        <h3 class="font-bold text-lg text-slate-700">技能評估分析</h3>
+                        <p class="text-sm text-slate-500">全國平均基準線對比</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 系統與雲端狀態指示 -->
+            <div id="cloud-status-banner" class="bg-slate-100 border border-slate-200 rounded-xl p-4 flex items-center justify-between transition-colors">
+                <div class="flex items-center space-x-3">
+                    <span class="text-2xl" id="cloud-banner-icon">⏳</span>
+                    <div>
+                        <h4 class="font-bold text-slate-800 text-sm" id="cloud-banner-title">正在抓取雲端帳號狀態...</h4>
+                        <p class="text-xs text-slate-600" id="cloud-banner-desc">完成帳號確認或關閉登入視窗後，將自動抓取錯題資料。</p>
+                    </div>
+                </div>
+                <span id="cloud-banner-badge" class="bg-slate-200 text-slate-700 text-xs font-bold px-2.5 py-1 rounded-full">Initializing</span>
+            </div>
+        </div>
+
+        <!-- 單科練習設定頁面 -->
+        <div id="view-setup" class="hidden max-w-xl mx-auto bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 space-y-6">
+            <h2 class="text-2xl font-bold text-slate-800">選擇單科練習科目 (固定 66 題)</h2>
+            <div class="space-y-4">
+                <label class="block border-2 border-indigo-100 hover:border-indigo-500 rounded-xl p-4 cursor-pointer transition flex items-center space-x-4">
+                    <input type="radio" name="practice-subject" value="食品品保概論" checked class="w-5 h-5 text-indigo-600">
+                    <div>
+                        <div class="font-bold text-lg text-slate-800">科目一：食品品保概論</div>
+                        <div class="text-sm text-slate-500">涵蓋品保概況、衛生管理、品保基礎、食安文化、專有名詞、數位轉型、法規、GHP、HACCP、危害分析、追溯追蹤與標示。</div>
+                    </div>
+                </label>
+                <label class="block border-2 border-indigo-100 hover:border-indigo-500 rounded-xl p-4 cursor-pointer transition flex items-center space-x-4">
+                    <input type="radio" name="practice-subject" value="食品科學概論" class="w-5 h-5 text-indigo-600">
+                    <div>
+                        <div class="font-bold text-lg text-slate-800">科目二：食品科學概論</div>
+                        <div class="text-sm text-slate-500">涵蓋微生物檢驗、食品化學、檢驗與分析、加工技術、保存技術、微生物、食品加工與中毒菌管制。</div>
+                    </div>
+                </label>
+            </div>
+            <div class="flex space-x-3 pt-4">
+                <button onclick="app.switchTab('home')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition cursor-pointer">返回首頁</button>
+                <button onclick="app.startPracticeExam()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow transition cursor-pointer">開始單科練習 (66題)</button>
+            </div>
+        </div>
+
+        <!-- 正式考試說明與準備頁面 -->
+        <div id="view-official-setup" class="hidden max-w-xl mx-auto bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 space-y-6 text-center">
+            <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-3xl mx-auto">🏆</div>
+            <div>
+                <h2 class="text-2xl font-bold text-slate-800">iPAS 初級食品品保工程師 • 正式模擬考</h2>
+                <p class="text-sm text-slate-500 mt-2">
+                    正式考試流程：先進行 **「食品品保概論」**（66題），交卷後顯示單科成績；隨後進入 **「食品科學概論」**（66題），交卷後顯示單科成績，並進行雙科平均及格總結算！
+                </p>
+            </div>
+            <div class="flex space-x-3 pt-4">
+                <button onclick="app.switchTab('home')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition cursor-pointer">返回首頁</button>
+                <button onclick="app.launchOfficialExam()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-900 font-extrabold py-3 rounded-xl shadow transition cursor-pointer">開始正式考試</button>
+            </div>
+        </div>
+
+        <!-- 測驗作答頁面 -->
+        <div id="view-exam" class="hidden max-w-3xl mx-auto space-y-6">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex justify-between items-center sticky top-16 z-40">
+                <div>
+                    <span id="exam-title-badge" class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full">食品品保概論</span>
+                    <span id="exam-progress-text" class="text-sm font-medium text-slate-600 ml-2">第 1 題 / 共 66 題</span>
+                </div>
+                <div class="text-red-600 font-mono font-bold text-lg bg-red-50 px-3 py-1 rounded-lg" id="exam-timer">90:00</div>
+            </div>
+
+            <div class="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 space-y-6">
+                <div id="question-container" class="space-y-4"></div>
+
+                <div class="flex justify-between items-center pt-6 border-t border-slate-100">
+                    <button onclick="app.prevQuestion()" id="btn-prev" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-5 py-2.5 rounded-xl transition text-sm cursor-pointer">上一題</button>
+                    <button onclick="app.nextQuestion()" id="btn-next" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-xl shadow transition text-sm cursor-pointer">下一題</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 測驗單科結果與合格審核頁面 -->
+        <div id="view-result" class="hidden max-w-2xl mx-auto bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 space-y-6 text-center">
+            <div class="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center text-4xl mx-auto shadow-inner" id="result-icon">🏆</div>
+            <div>
+                <h2 class="text-2xl font-bold text-slate-800" id="result-main-title">單科測驗結算與成績</h2>
+                <p class="text-sm text-slate-500 mt-1" id="result-subject-name">食品品保概論</p>
+            </div>
+            
+            <div class="bg-slate-50 p-6 rounded-2xl space-y-4 border border-slate-100">
+                <div class="flex justify-around items-center">
+                    <div>
+                        <div class="text-xs text-slate-400 uppercase">單科得分</div>
+                        <div class="text-4xl font-extrabold text-indigo-600 mt-1" id="result-score">0</div>
+                    </div>
+                    <div class="h-10 w-px bg-slate-200"></div>
+                    <div>
+                        <div class="text-xs text-slate-400 uppercase">答對題數</div>
+                        <div class="text-4xl font-extrabold text-slate-700 mt-1" id="result-correct-count">0 / 66</div>
+                    </div>
+                </div>
+                
+                <div class="pt-4 border-t border-slate-200" id="pass-status-container"></div>
+            </div>
+
+            <div class="flex space-x-3 pt-4">
+                <button onclick="app.switchTab('home')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition cursor-pointer">返回首頁</button>
+                <button id="result-action-btn" onclick="app.handleResultNextStep()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow transition cursor-pointer">進入下一科</button>
+            </div>
+        </div>
+
+        <!-- 錯題本頁面 -->
+        <div id="view-wrong-book" class="hidden max-w-4xl mx-auto space-y-6">
+            <div class="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800">錯題解析與重練專區</h2>
+                    <p class="text-sm text-slate-500">系統自動彙整您答錯的題目，提供觀念解析與針對性重練。</p>
+                </div>
+                <button onclick="app.switchTab('home')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-xl text-sm transition cursor-pointer">返回首頁</button>
+            </div>
+            <div id="wrong-list-container" class="space-y-4"></div>
+        </div>
+
+        <!-- 歷史記錄頁面 -->
+        <div id="view-history" class="hidden max-w-4xl mx-auto space-y-6">
+            <div class="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800">歷次作答完整記錄</h2>
+                    <p class="text-sm text-slate-500">完整保留每一次的交卷成績與試卷詳情。</p>
+                </div>
+                <button onclick="app.switchTab('home')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-xl text-sm transition cursor-pointer">返回首頁</button>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-100">
+                                <th class="p-4">測驗時間</th>
+                                <th class="p-4">報考科目</th>
+                                <th class="p-4">得分</th>
+                                <th class="p-4">答對率</th>
+                                <th class="p-4 text-right">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body" class="divide-y divide-slate-100 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 雲端登入與帳號管理 Modal -->
+    <div id="auth-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden p-6 space-y-6">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-xl text-slate-800">☁️ 雲端帳號登入</h3>
+                <button onclick="app.closeAuthModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold cursor-pointer">&times;</button>
+            </div>
+
+            <!-- 未登入面板 -->
+            <div id="auth-logged-out-panel" class="space-y-4">
+                <p class="text-xs text-slate-500">請登入帳號以同步雲端錯題；若直接關閉此視窗，系統將改為抓取本機錯題資料。</p>
+                <button onclick="app.loginWithGoogle()" class="w-full flex items-center justify-center space-x-3 border-2 border-slate-200 hover:border-indigo-500 p-3 rounded-xl font-bold text-slate-700 transition cursor-pointer">
+                    <span>🌐</span>
+                    <span>使用 Google 帳號快速登入</span>
+                </button>
+                <div class="relative flex py-1 items-center">
+                    <div class="flex-grow border-t border-slate-200"></div>
+                    <span class="flex-shrink mx-3 text-xs text-slate-400">或使用 Email 登入 / 註冊</span>
+                    <div class="flex-grow border-t border-slate-200"></div>
+                </div>
+                <div class="space-y-3">
+                    <input type="email" id="auth-email" placeholder="電子郵件" class="w-full border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <input type="password" id="auth-password" placeholder="密碼（至少 6 位數）" class="w-full border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <button onclick="app.loginWithEmail()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow transition text-sm cursor-pointer">登入 / 自動註冊</button>
+                </div>
+                <button onclick="app.closeAuthModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition text-xs cursor-pointer">
+                    略過登入並關閉（抓取本機錯題）
+                </button>
+            </div>
+
+            <!-- 已登入面板 -->
+            <div id="auth-logged-in-panel" class="hidden space-y-4">
+                <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl text-center space-y-1">
+                    <div class="text-xs text-emerald-600 font-bold">✅ 雲端帳號已連線</div>
+                    <p class="text-sm text-emerald-900 font-bold break-all" id="auth-modal-user-email"></p>
+                    <p class="text-xs text-slate-500 pt-1" id="last-sync-time">狀態：已同步</p>
+                </div>
+                <button onclick="app.closeAuthModal()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition text-sm cursor-pointer">
+                    確認並抓取錯題資料
+                </button>
+                <button onclick="app.logout()" class="w-full bg-red-50 hover:bg-red-100 text-red-600 font-bold py-3 rounded-xl transition text-sm cursor-pointer">
+                    登出雲端帳號
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 技能評估雷達圖 Modal -->
+    <div id="radar-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="bg-gradient-to-r from-indigo-700 to-violet-700 text-white p-6 flex justify-between items-center">
+                <h3 class="font-bold text-xl" id="radar-user-title">技能評估分析</h3>
+                <button onclick="app.closeRadarModal()" class="text-white/80 hover:text-white text-2xl font-bold cursor-pointer">&times;</button>
+            </div>
+            <div class="p-6 overflow-y-auto space-y-4 flex-grow">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">選擇考科：</label>
+                    <select id="radar-subject-select" onchange="app.updateRadarChart()" class="w-full border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50">
+                        <option value="食品品保概論">食品品保概論</option>
+                        <option value="食品科學概論">食品科學概論</option>
+                    </select>
+                </div>
+                <div class="relative w-full h-72 bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-center justify-center">
+                    <canvas id="radarCanvas"></canvas>
+                </div>
+            </div>
+            <div class="p-4 bg-slate-50 border-t border-slate-100 text-center">
+                <button onclick="app.closeRadarModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition cursor-pointer">關閉分析</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 歷史試卷詳情檢視 Modal -->
+    <div id="history-detail-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="bg-slate-800 text-white p-6 flex justify-between items-center">
+                <h3 class="font-bold text-xl">試卷作答詳情檢視</h3>
+                <button onclick="app.closeHistoryDetailModal()" class="text-slate-400 hover:text-white text-2xl font-bold cursor-pointer">&times;</button>
+            </div>
+            <div class="p-6 overflow-y-auto space-y-6 flex-grow" id="history-detail-content"></div>
+            <div class="p-4 bg-slate-50 border-t border-slate-100 text-right">
+                <button onclick="app.closeHistoryDetailModal()" class="bg-slate-700 hover:bg-slate-800 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition cursor-pointer">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 核心應用程式邏輯 -->
+    <script>
+        function generateUniqueQuestionBank() {
+            const bank = { "食品品保概論": [], "食品科學概論": [] };
+
+            for (let i = 1; i <= 120; i++) {
+                const explanationText = `食品品保核心在於源頭管理、製程管制與全面品質保證（QA）。（考點解析編號 ${i}）`;
+                bank["食品品保概論"].push({
+                    id: "Q_" + i,
+                    topic: i % 2 === 0 ? "食品法規與GHP (進階考點)" : "HACCP與品保系統 (進階考點)",
+                    q: `【品保考點 ${i}】關於我國食品安全衛生管理與品質保證系統之實務運作，下列敘述何者最適當？`,
+                    options: [
+                        "落實全面品質保證與自主衛生管理機制",
+                        "僅需於年度評鑑時應付檢查即可",
+                        "取消所有食品工廠之危害分析管制點規範",
+                        "全面依賴事後檢驗以取代製程品管"
+                    ],
+                    answer: 0,
+                    explanation: explanationText
+                });
+            }
+
+            for (let i = 1; i <= 120; i++) {
+                const explanationText = `食品保存與加工需綜合考量水分活性、溫度及微生物控制技術。（考點解析編號 ${i}）`;
+                bank["食品科學概論"].push({
+                    id: "S_" + i,
+                    topic: i % 2 === 0 ? "食品加工與保存 (綜合考點)" : "微生物檢驗與分析 (綜合考點)",
+                    q: `【食科考點 ${i}】在食品科學與微生物檢驗實務中，針對加工技術與保存期限評估，下列敘述何者正確？`,
+                    options: [
+                        "需藉由水分活性降低與適當殺菌來抑制微生物生長",
+                        "食品中水分活性大於 0.85 時不需冷藏保存",
+                        "所有病原菌在常溫下皆無法繁殖",
+                        "加熱殺菌時間越長越好，不需要顧及營養價值"
+                    ],
+                    answer: 0,
+                    explanation: explanationText
+                });
+            }
+
+            return bank;
+        }
+
+        const questionBank = generateUniqueQuestionBank();
+
+        class IPASApp {
+            constructor() {
+                this.currentTab = 'home';
+                this.examMode = 'practice';
+                this.officialStage = 1;
+                this.officialScores = {};
+                this.currentExamSubject = '食品品保概論';
+                this.examQuestions = [];
+                this.currentQuestionIndex = 0;
+                this.userAnswers = {};
+                this.examTimerInterval = null;
+                this.timeLeft = 5400;
+                this.radarChartInstance = null;
+
+                // 循序初始化與重置中止旗標
+                this.cloudService = null;
+                this.currentUser = null;
+                this.authResolved = false;
+                this.promptedUnauthOnce = false;
+                this.wrongBookLoaded = false;
+                this.isResetting = false;
+                this.fetchSeq = 0;
+
+                this.initFallbackTimer = setTimeout(() => {
+                    if (!this.authResolved && !this.isResetting) {
+                        this.handleAuthChecked(null);
+                    }
+                }, 4000);
+            }
+
+            attachCloudService(service) {
+                this.cloudService = service;
+            }
+
+            handleAuthChecked(user) {
+                if (this.initFallbackTimer) {
+                    clearTimeout(this.initFallbackTimer);
+                    this.initFallbackTimer = null;
+                }
+
+                // 若已按重置，停止抓取所有錯題與歷次考試資料
+                if (this.isResetting) {
+                    this.currentUser = user;
+                    this.updateAuthUI(user);
+                    return;
+                }
+
+                const wasResolved = this.authResolved;
+                this.authResolved = true;
+                this.currentUser = user;
+                this.updateAuthUI(user);
+
+                if (user) {
+                    this.hideAuthModalOnly();
+                    this.fetchWrongBookData();
+                } else {
+                    if (!wasResolved && !this.promptedUnauthOnce) {
+                        this.promptedUnauthOnce = true;
+                        this.showAuthModalOnly();
+                    } else if (!this.wrongBookLoaded) {
+                        this.fetchWrongBookData();
+                    }
+                }
+            }
+
+            updateAuthUI(user) {
+                const dot = document.getElementById('cloud-dot');
+                const emailText = document.getElementById('user-email-text');
+                const authBtn = document.getElementById('auth-btn');
+                const loggedOutPanel = document.getElementById('auth-logged-out-panel');
+                const loggedInPanel = document.getElementById('auth-logged-in-panel');
+                const modalEmail = document.getElementById('auth-modal-user-email');
+
+                const banner = document.getElementById('cloud-status-banner');
+                const bannerIcon = document.getElementById('cloud-banner-icon');
+                const bannerTitle = document.getElementById('cloud-banner-title');
+                const bannerDesc = document.getElementById('cloud-banner-desc');
+                const bannerBadge = document.getElementById('cloud-banner-badge');
+
+                if (user) {
+                    if (dot) dot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
+                    if (emailText) emailText.textContent = user.email || "已連線雲端";
+                    if (authBtn) authBtn.textContent = "☁️ 雲端帳號";
+                    if (loggedOutPanel) loggedOutPanel.classList.add('hidden');
+                    if (loggedInPanel) loggedInPanel.classList.remove('hidden');
+                    if (modalEmail) modalEmail.textContent = user.email || "Google 帳號";
+
+                    if (banner) banner.className = "bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between transition-colors";
+                    if (bannerIcon) bannerIcon.textContent = "☁️";
+                    if (bannerTitle) {
+                        bannerTitle.textContent = `已抓取雲端帳號（${user.email}）`;
+                        bannerTitle.className = "font-bold text-emerald-800 text-sm";
+                    }
+                    if (bannerDesc) {
+                        bannerDesc.textContent = this.isResetting ? "已停止抓取並清空錯題與歷次考試資料。" : "錯題資料已與雲端帳號同步完成。";
+                        bannerDesc.className = "text-xs text-emerald-700";
+                    }
+                    if (bannerBadge) {
+                        bannerBadge.textContent = "Cloud Active";
+                        bannerBadge.className = "bg-emerald-200 text-emerald-800 text-xs font-bold px-2.5 py-1 rounded-full";
+                    }
+                } else {
+                    if (dot) dot.className = "w-2 h-2 rounded-full bg-slate-400";
+                    if (emailText) emailText.textContent = "未登入（本機模式）";
+                    if (authBtn) authBtn.textContent = "☁️ 雲端登入";
+                    if (loggedOutPanel) loggedOutPanel.classList.remove('hidden');
+                    if (loggedInPanel) loggedInPanel.classList.add('hidden');
+
+                    if (banner) banner.className = "bg-slate-100 border border-slate-200 rounded-xl p-4 flex items-center justify-between transition-colors";
+                    if (bannerIcon) bannerIcon.textContent = "💻";
+                    if (bannerTitle) {
+                        bannerTitle.textContent = "目前為未登入狀態（使用本機錯題資料）";
+                        bannerTitle.className = "font-bold text-slate-800 text-sm";
+                    }
+                    if (bannerDesc) {
+                        bannerDesc.textContent = this.isResetting ? "已停止抓取並清空錯題與歷次考試資料。" : "可隨時點擊右上角「雲端登入」進行帳號同步。";
+                        bannerDesc.className = "text-xs text-slate-600";
+                    }
+                    if (bannerBadge) {
+                        bannerBadge.textContent = "Local Mode";
+                        bannerBadge.className = "bg-slate-200 text-slate-700 text-xs font-bold px-2.5 py-1 rounded-full";
+                    }
+                }
+            }
+
+            showAuthModalOnly() {
+                const modal = document.getElementById('auth-modal');
+                if (modal) modal.classList.remove('hidden');
+            }
+
+            hideAuthModalOnly() {
+                const modal = document.getElementById('auth-modal');
+                if (modal) modal.classList.add('hidden');
+            }
+
+            openAuthModal() {
+                this.showAuthModalOnly();
+            }
+
+            closeAuthModal() {
+                this.hideAuthModalOnly();
+                if (!this.isResetting) {
+                    this.fetchWrongBookData();
+                } else {
+                    this.applyClearedUI();
+                }
+            }
+
+            applyClearedUI() {
+                const wrongCountEl = document.getElementById('home-wrong-count');
+                const historyCountEl = document.getElementById('home-history-count');
+                if (wrongCountEl) wrongCountEl.textContent = "目前累積錯題：0 題";
+                if (historyCountEl) historyCountEl.textContent = "已完成測驗：0 次";
+                if (this.currentTab === 'wrong-book') this.renderWrongBook();
+                if (this.currentTab === 'history') this.renderHistoryTable();
+            }
+
+            async fetchWrongBookData() {
+                // 點選重置後，立即停止抓取所有錯題與歷次考試資料
+                if (this.isResetting) {
+                    this.applyClearedUI();
+                    return;
+                }
+
+                const seq = ++this.fetchSeq;
+                const wrongCountEl = document.getElementById('home-wrong-count');
+                const historyCountEl = document.getElementById('home-history-count');
+
+                let wrongs = this.getLocalWrongBook();
+                let history = this.getLocalHistory();
+
+                if (this.currentUser && this.cloudService) {
+                    if (wrongCountEl) wrongCountEl.textContent = "正在抓取雲端錯題資料...";
+                    try {
+                        const merged = await this.cloudService.syncData(this.currentUser.uid, wrongs, history);
+                        // 若期間被重置或已有更新的抓取請求，立即放棄此結果
+                        if (this.isResetting || seq !== this.fetchSeq) return;
+                        if (merged) {
+                            wrongs = merged.wrongs;
+                            history = merged.history;
+                            localStorage.setItem('ipas_wrong_book_v15', JSON.stringify(wrongs));
+                            localStorage.setItem('ipas_history_v15', JSON.stringify(history));
+                        }
+                    } catch (err) {
+                        if (this.isResetting || seq !== this.fetchSeq) return;
+                        console.warn("雲端錯題抓取失敗，改用本機錯題:", err);
+                    }
+                }
+
+                if (this.isResetting || seq !== this.fetchSeq) return;
+
+                this.wrongBookLoaded = true;
+                if (wrongCountEl) wrongCountEl.textContent = `目前累積錯題：${wrongs.length} 題`;
+                if (historyCountEl) historyCountEl.textContent = `已完成測驗：${history.length} 次`;
+
+                if (this.currentTab === 'wrong-book') this.renderWrongBook();
+                if (this.currentTab === 'history') this.renderHistoryTable();
+            }
+
+            async loginWithGoogle() {
+                if (!this.cloudService) {
+                    alert("雲端模組尚未就緒，將先使用本機錯題資料。");
+                    this.closeAuthModal();
+                    return;
+                }
+                const user = await this.cloudService.loginGoogle();
+                if (user) {
+                    this.handleAuthChecked(user);
+                }
+            }
+
+            async loginWithEmail() {
+                if (!this.cloudService) {
+                    alert("雲端模組尚未就緒，將先使用本機錯題資料。");
+                    this.closeAuthModal();
+                    return;
+                }
+                const email = document.getElementById('auth-email').value.trim();
+                const password = document.getElementById('auth-password').value.trim();
+                if (!email || !password) {
+                    alert("請輸入電子郵件與密碼");
+                    return;
+                }
+                const user = await this.cloudService.loginEmail(email, password);
+                if (user) {
+                    this.handleAuthChecked(user);
+                }
+            }
+
+            async logout() {
+                if (this.cloudService) {
+                    await this.cloudService.logout();
+                }
+                this.currentUser = null;
+                this.wrongBookLoaded = false;
+                this.updateAuthUI(null);
+                this.hideAuthModalOnly();
+                if (!this.isResetting) {
+                    this.fetchWrongBookData();
+                } else {
+                    this.applyClearedUI();
+                }
+            }
+
+            sanitizeInput(input) {
+                if (typeof input !== 'string') return input;
+                return input.replace(/[&<>'"]/g, 
+                    tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+                );
+            }
+
+            // 重置鈕：立即停止抓取所有錯題與歷次考試資料，並清空錯題與歷次考試資料庫
+            async factoryReset() {
+                this.isResetting = true;
+                this.fetchSeq++;
+                if (this.initFallbackTimer) {
+                    clearTimeout(this.initFallbackTimer);
+                    this.initFallbackTimer = null;
+                }
+
+                // 立即清空本機儲存
+                localStorage.removeItem('ipas_wrong_book_v15');
+                localStorage.removeItem('ipas_history_v15');
+                this.wrongBookLoaded = true;
+                this.applyClearedUI();
+                this.updateAuthUI(this.currentUser);
+
+                // 立即清空雲端錯題與歷次考試資料庫
+                if (this.cloudService && this.currentUser) {
+                    try {
+                        await this.cloudService.overwriteCloud(this.currentUser.uid, [], []);
+                    } catch (e) {
+                        console.warn("清空雲端資料庫時發生錯誤:", e);
+                    }
+                }
+
+                alert("已停止抓取錯題與歷次考試資料，並完成資料庫清空！");
+                this.switchTab('home');
+            }
+
+            switchTab(tabId) {
+                this.currentTab = tabId;
+                const views = ['home', 'setup', 'official-setup', 'exam', 'result', 'wrong-book', 'history'];
+                views.forEach(v => {
+                    const el = document.getElementById(`view-${v}`);
+                    if (el) el.classList.add('hidden');
+                });
+                const targetEl = document.getElementById(`view-${tabId}`);
+                if (targetEl) targetEl.classList.remove('hidden');
+
+                if (tabId === 'home') {
+                    if (this.isResetting) this.applyClearedUI();
+                    else this.fetchWrongBookData();
+                }
+                if (tabId === 'wrong-book') this.renderWrongBook();
+                if (tabId === 'history') this.renderHistoryTable();
+            }
+
+            startPracticeSetup() {
+                this.examMode = 'practice';
+                this.switchTab('setup');
+            }
+
+            startPracticeExam() {
+                this.isResetting = false;
+                const radios = document.getElementsByName('practice-subject');
+                for (let r of radios) {
+                    if (r.checked) this.currentExamSubject = r.value;
+                }
+                this.initExamForSubject(this.currentExamSubject);
+            }
+
+            startOfficialExamSetup() {
+                this.examMode = 'official';
+                this.officialStage = 1;
+                this.officialScores = {};
+                this.switchTab('official-setup');
+            }
+
+            launchOfficialExam() {
+                this.isResetting = false;
+                this.officialStage = 1;
+                this.officialScores = {};
+                this.initExamForSubject('食品品保概論');
+            }
+
+            initExamForSubject(subjectName) {
+                this.currentExamSubject = subjectName;
+                const bank = questionBank[subjectName] || questionBank["食品品保概論"];
+                
+                let shuffled = [...bank];
+                for (let i = shuffled.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                }
+
+                this.examQuestions = shuffled.slice(0, 66);
+                this.currentQuestionIndex = 0;
+                this.userAnswers = {};
+                this.timeLeft = 5400;
+
+                this.switchTab('exam');
+                let modeText = this.examMode === 'official' ? (this.officialStage === 1 ? '【正式考試 • 科目一】' : '【正式考試 • 科目二】') : '【單科練習】';
+                const badgeEl = document.getElementById('exam-title-badge');
+                if (badgeEl) badgeEl.textContent = `${modeText} ${this.currentExamSubject} (固定 66 題)`;
+                this.renderQuestion();
+                this.startTimer();
+            }
+
+            startTimer() {
+                if (this.examTimerInterval) clearInterval(this.examTimerInterval);
+                this.examTimerInterval = setInterval(() => {
+                    this.timeLeft--;
+                    const min = String(Math.floor(this.timeLeft / 60)).padStart(2, '0');
+                    const sec = String(this.timeLeft % 60).padStart(2, '0');
+                    const timerEl = document.getElementById('exam-timer');
+                    if (timerEl) timerEl.textContent = `${min}:${sec}`;
+                    if (this.timeLeft <= 0) {
+                        clearInterval(this.examTimerInterval);
+                        alert("考試時間到，系統將自動交卷！");
+                        this.submitExam();
+                    }
+                }, 1000);
+            }
+
+            renderQuestion() {
+                const q = this.examQuestions[this.currentQuestionIndex];
+                const total = this.examQuestions.length;
+                const progressEl = document.getElementById('exam-progress-text');
+                if (progressEl) progressEl.textContent = `第 ${this.currentQuestionIndex + 1} 題 / 共 ${total} 題`;
+
+                const container = document.getElementById('question-container');
+                if (!container) return;
+
+                let optionsHtml = '';
+                q.options.forEach((opt, idx) => {
+                    const checked = this.userAnswers[this.currentQuestionIndex] === idx ? 'checked' : '';
+                    optionsHtml += `
+                        <label class="block border border-slate-200 hover:border-indigo-500 rounded-xl p-4 cursor-pointer transition flex items-center space-x-3">
+                            <input type="radio" name="current-opt" value="${idx}" ${checked} onchange="app.selectOption(${idx})" class="w-4 h-4 text-indigo-600">
+                            <span class="text-slate-700">${this.sanitizeInput(opt)}</span>
+                        </label>
+                    `;
+                });
+
+                container.innerHTML = `
+                    <div class="text-xs font-bold text-indigo-600 uppercase tracking-wider">核心分類：${this.sanitizeInput(q.topic)}</div>
+                    <div class="text-lg font-bold text-slate-800">${this.sanitizeInput(q.q)}</div>
+                    <div class="space-y-3 pt-2">${optionsHtml}</div>
+                `;
+
+                const prevBtn = document.getElementById('btn-prev');
+                if (prevBtn) prevBtn.style.display = this.currentQuestionIndex === 0 ? 'none' : 'block';
+                
+                const nextBtn = document.getElementById('btn-next');
+                if (nextBtn) {
+                    if (this.currentQuestionIndex === total - 1) {
+                        nextBtn.textContent = '交卷評分';
+                        nextBtn.className = 'bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl shadow transition text-sm cursor-pointer';
+                    } else {
+                        nextBtn.textContent = '下一題';
+                        nextBtn.className = 'bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-xl shadow transition text-sm cursor-pointer';
+                    }
+                }
+            }
+
+            selectOption(idx) {
+                this.userAnswers[this.currentQuestionIndex] = idx;
+            }
+
+            prevQuestion() {
+                if (this.currentQuestionIndex > 0) {
+                    this.currentQuestionIndex--;
+                    this.renderQuestion();
+                }
+            }
+
+            nextQuestion() {
+                if (this.currentQuestionIndex < this.examQuestions.length - 1) {
+                    this.currentQuestionIndex++;
+                    this.renderQuestion();
+                } else {
+                    this.submitExam();
+                }
+            }
+
+            submitExam() {
+                if (this.examTimerInterval) clearInterval(this.examTimerInterval);
+
+                let correctCount = 0;
+                let wrongItems = [];
+                let detailedAnswers = [];
+
+                this.examQuestions.forEach((q, idx) => {
+                    const userAns = this.userAnswers[idx];
+                    const isCorrect = userAns === q.answer;
+                    if (isCorrect) correctCount++;
+                    else {
+                        wrongItems.push({ 
+                            ...q, 
+                            userAns: userAns !== undefined ? userAns : -1, 
+                            explanation: q.explanation || "暫無解析" 
+                        });
+                    }
+                    detailedAnswers.push({ 
+                        ...q, 
+                        userAns: userAns !== undefined ? userAns : -1, 
+                        isCorrect 
+                    });
+                });
+
+                const total = this.examQuestions.length;
+                const score = Math.round((correctCount / total) * 100);
+
+                const payload = {
+                    id: "EXAM_" + Date.now(),
+                    date: new Date().toLocaleString(),
+                    subject: this.currentExamSubject,
+                    score,
+                    correctCount,
+                    total,
+                    answers: detailedAnswers
+                };
+
+                this.saveHistory(payload);
+                this.saveWrongItems(wrongItems);
+
+                if (this.cloudService && this.currentUser) {
+                    this.cloudService.overwriteCloud(
+                        this.currentUser.uid, 
+                        this.getLocalWrongBook(), 
+                        this.getLocalHistory()
+                    ).catch(e => console.warn("背景上傳雲端失敗:", e));
+                }
+
+                const subNameEl = document.getElementById('result-subject-name');
+                const scoreEl = document.getElementById('result-score');
+                const correctCountEl = document.getElementById('result-correct-count');
+                if (subNameEl) subNameEl.textContent = `${this.currentExamSubject} (滿分 100 分)`;
+                if (scoreEl) scoreEl.textContent = score;
+                if (correctCountEl) correctCountEl.textContent = `${correctCount} / ${total}`;
+
+                const passContainer = document.getElementById('pass-status-container');
+                const actionBtn = document.getElementById('result-action-btn');
+                const mainTitleEl = document.getElementById('result-main-title');
+
+                if (this.examMode === 'practice') {
+                    if (mainTitleEl) mainTitleEl.textContent = '📖 單科練習成績結算';
+                    if (passContainer) {
+                        passContainer.innerHTML = `
+                            <div class="p-4 rounded-xl border bg-indigo-50 text-indigo-900 border-indigo-200 text-center space-y-1">
+                                <div class="font-bold text-lg">💡 單科練習模式已完成交卷</div>
+                                <div class="text-xs text-indigo-700">本次練習成績已自動記錄至「歷史作答記錄」與「錯題本」。</div>
+                            </div>
+                        `;
+                    }
+                    if (actionBtn) {
+                        actionBtn.textContent = '返回首頁';
+                        actionBtn.onclick = () => this.switchTab('home');
+                    }
+                } else {
+                    if (this.officialStage === 1) {
+                        this.officialScores['食品品保概論'] = score;
+                        if (mainTitleEl) mainTitleEl.textContent = '【正式考試】科目一結算';
+                        const isPassed = score >= 60;
+                        if (passContainer) {
+                            passContainer.innerHTML = `
+                                <div class="p-4 rounded-xl border ${isPassed ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-red-100 text-red-800 border-red-300'} text-center space-y-1">
+                                    <div class="font-bold text-lg">${isPassed ? '✅ 科目一順利通過！' : '❌ 科目一未達 60 分門檻'}</div>
+                                    <div class="text-xs text-slate-600">準備進入科目二：食品科學概論（66題）</div>
+                                </div>
+                            `;
+                        }
+                        if (actionBtn) {
+                            actionBtn.textContent = '開始考科目二 (食品科學概論)';
+                            actionBtn.onclick = () => {
+                                this.officialStage = 2;
+                                this.initExamForSubject('食品科學概論');
+                            };
+                        }
+                    } else {
+                        this.officialScores['食品科學概論'] = score;
+                        if (mainTitleEl) mainTitleEl.textContent = '🏆 正式模擬考總結算與資格審核';
+                        
+                        const s1 = this.officialScores['食品品保概論'];
+                        const s2 = this.officialScores['食品科學概論'];
+                        const avgScore = Math.round(((s1 + s2) / 2) * 10) / 10;
+                        const p1 = s1 >= 60;
+                        const p2 = s2 >= 60;
+                        const pAvg = avgScore >= 70;
+                        const isTotalPassed = p1 && p2 && pAvg;
+
+                        if (passContainer) {
+                            passContainer.innerHTML = `
+                                <div class="p-4 rounded-xl border ${isTotalPassed ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-red-100 text-red-800 border-red-300'} text-center space-y-2">
+                                    <div class="font-bold text-lg">${isTotalPassed ? '🎉 恭喜通過正式國家級鑑定標準！' : '⚠️ 未完全達標，請繼續加油！'}</div>
+                                    <div class="text-xs space-y-1 text-left bg-white p-3 rounded-lg border border-slate-200">
+                                        <div>• 食品品保概論：${s1}分 ${p1 ? '✅' : '❌ (需 >= 60)'}</div>
+                                        <div>• 食品科學概論：${s2}分 ${p2 ? '✅' : '❌ (需 >= 60)'}</div>
+                                        <div>• 雙科平均分數：${avgScore}分 ${pAvg ? '✅' : '❌ (需 >= 70)'}</div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        if (actionBtn) {
+                            actionBtn.textContent = '返回首頁';
+                            actionBtn.onclick = () => this.switchTab('home');
+                        }
+                    }
+                }
+
+                this.switchTab('result');
+            }
+
+            getLocalHistory() {
+                if (this.isResetting) return [];
+                try {
+                    const data = localStorage.getItem('ipas_history_v15');
+                    return data ? JSON.parse(data) : [];
+                } catch(e) {
+                    return [];
+                }
+            }
+
+            saveHistory(record) {
+                let history = this.getLocalHistory();
+                history.unshift(record);
+                localStorage.setItem('ipas_history_v15', JSON.stringify(history));
+            }
+
+            getLocalWrongBook() {
+                if (this.isResetting) return [];
+                try {
+                    const data = localStorage.getItem('ipas_wrong_book_v15');
+                    return data ? JSON.parse(data) : [];
+                } catch(e) {
+                    return [];
+                }
+            }
+
+            saveWrongItems(newWrongs) {
+                let wrongs = this.getLocalWrongBook();
+                newWrongs.forEach(nw => {
+                    if (!wrongs.some(w => w.id === nw.id)) wrongs.push(nw);
+                });
+                localStorage.setItem('ipas_wrong_book_v15', JSON.stringify(wrongs));
+            }
+
+            renderWrongBook() {
+                const wrongs = this.getLocalWrongBook();
+                const container = document.getElementById('wrong-list-container');
+                if (!container) return;
+
+                if (wrongs.length === 0) {
+                    container.innerHTML = `<div class="bg-white p-8 rounded-2xl text-center text-slate-400">目前沒有累積錯題，太棒了！</div>`;
+                    return;
+                }
+
+                let html = '';
+                wrongs.forEach((item) => {
+                    let optsHtml = '';
+                    if (item.options && Array.isArray(item.options)) {
+                        item.options.forEach((opt, oIdx) => {
+                            let color = 'border-slate-100 text-slate-700';
+                            if (oIdx === item.answer) color = 'bg-emerald-50 border-emerald-300 text-emerald-800 font-bold';
+                            else if (oIdx === item.userAns) color = 'bg-red-50 border-red-300 text-red-800';
+                            optsHtml += `<div class="p-3 border rounded-xl text-sm ${color}">${this.sanitizeInput(opt)}</div>`;
+                        });
+                    }
+
+                    html += `
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+                            <div class="flex justify-between items-center">
+                                <span class="bg-red-100 text-red-800 text-xs font-bold px-3 py-1 rounded-full">分類：${this.sanitizeInput(item.topic)}</span>
+                                <button onclick="app.removeWrongItem('${item.id}')" class="text-xs text-slate-400 hover:text-red-600 cursor-pointer">從錯題本移除</button>
+                            </div>
+                            <div class="font-bold text-slate-800 text-lg">${this.sanitizeInput(item.q)}</div>
+                            <div class="space-y-2">${optsHtml}</div>
+                            <div class="bg-indigo-50 p-4 rounded-xl text-sm text-indigo-900">
+                                <span class="font-bold">💡 考綱解析：</span>${this.sanitizeInput(item.explanation)}
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            }
+
+            removeWrongItem(id) {
+                let wrongs = this.getLocalWrongBook();
+                wrongs = wrongs.filter(w => w.id !== id);
+                localStorage.setItem('ipas_wrong_book_v15', JSON.stringify(wrongs));
+                
+                if (this.cloudService && this.currentUser) {
+                    this.cloudService.overwriteCloud(
+                        this.currentUser.uid, 
+                        wrongs, 
+                        this.getLocalHistory()
+                    ).catch(e => console.warn(e));
+                }
+
+                this.renderWrongBook();
+                this.fetchWrongBookData();
+            }
+
+            renderHistoryTable() {
+                const history = this.getLocalHistory();
+                const tbody = document.getElementById('history-table-body');
+                if (!tbody) return;
+
+                if (history.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">尚無測驗記錄</td></tr>`;
+                    return;
+                }
+
+                let html = '';
+                history.forEach((h, idx) => {
+                    let isPassed = h.score >= 60;
+                    let statusBadge = isPassed ? '<span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-0.5 rounded">及格</span>' : '<span class="bg-red-100 text-red-800 text-xs font-bold px-2 py-0.5 rounded">未過</span>';
+                    html += `
+                        <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                            <td class="p-4 text-slate-600">${h.date}</td>
+                            <td class="p-4 font-bold text-slate-800">${h.subject}</td>
+                            <td class="p-4 font-mono font-extrabold text-indigo-600">${h.score} 分 ${statusBadge}</td>
+                            <td class="p-4 text-slate-600">${h.correctCount} / ${h.total} 題</td>
+                            <td class="p-4 text-right">
+                                <button onclick="app.viewHistoryDetail(${idx})" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-1.5 rounded-lg transition cursor-pointer">查看詳情</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = html;
+            }
+
+            viewHistoryDetail(index) {
+                const history = this.getLocalHistory();
+                const record = history[index];
+                if (!record) return;
+
+                const content = document.getElementById('history-detail-content');
+                if (!content) return;
+
+                let html = `<div class="space-y-2"><h4 class="font-bold text-lg text-slate-800">${record.subject} - 試卷詳情</h4><p class="text-xs text-slate-400">交卷時間：${record.date} | 得分：${record.score} 分</p></div>`;
+
+                if (record.answers && Array.isArray(record.answers)) {
+                    record.answers.forEach((ans, idx) => {
+                        let badge = ans.isCorrect ? '<span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-0.5 rounded">答對</span>' : '<span class="bg-red-100 text-red-800 text-xs font-bold px-2 py-0.5 rounded">答錯</span>';
+                        let userChoiceText = (ans.userAns !== undefined && ans.userAns >= 0 && ans.options) 
+                            ? this.sanitizeInput(ans.options[ans.userAns]) 
+                            : '未作答';
+
+                        html += `
+                            <div class="bg-slate-50 p-4 rounded-xl space-y-2 border border-slate-100">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-xs font-bold text-indigo-600">第 ${idx + 1} 題 [${ans.topic}]</span>
+                                    ${badge}
+                                </div>
+                                <div class="font-bold text-slate-800 text-sm">${this.sanitizeInput(ans.q)}</div>
+                                <div class="text-xs text-slate-600">您的選擇：${userChoiceText}</div>
+                                <div class="text-xs font-bold text-emerald-700">正確答案：${ans.options ? this.sanitizeInput(ans.options[ans.answer]) : ''}</div>
+                            </div>
+                        `;
+                    });
+                }
+
+                content.innerHTML = html;
+                const modal = document.getElementById('history-detail-modal');
+                if (modal) modal.classList.remove('hidden');
+            }
+
+            closeHistoryDetailModal() {
+                const modal = document.getElementById('history-detail-modal');
+                if (modal) modal.classList.add('hidden');
+            }
+
+            openRadarModal() {
+                const modal = document.getElementById('radar-modal');
+                if (modal) modal.classList.remove('hidden');
+                setTimeout(() => this.initRadarChart(), 100);
+            }
+
+            closeRadarModal() {
+                const modal = document.getElementById('radar-modal');
+                if (modal) modal.classList.add('hidden');
+            }
+
+            initRadarChart() {
+                const canvas = document.getElementById('radarCanvas');
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                if (this.radarChartInstance) this.radarChartInstance.destroy();
+
+                const selectEl = document.getElementById('radar-subject-select');
+                const subject = selectEl ? selectEl.value : '食品品保概論';
+                let labels = subject === '食品品保概論' 
+                    ? ['法規與GHP', 'HACCP危害分析', '追溯與標示', '品保基礎與名詞', '食安文化與事件', '數位轉型']
+                    : ['食品化學', '食品微生物', '檢驗與分析', '加工與保存', '中毒菌管制'];
+                let personalData = [85, 80, 88, 75, 90, 82];
+                let baselineData = [75, 72, 78, 70, 80, 76];
+
+                this.radarChartInstance = new Chart(ctx, {
+                    type: 'radar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: '個人表現',
+                                data: personalData,
+                                backgroundColor: 'rgba(79, 70, 229, 0.2)',
+                                borderColor: 'rgb(79, 70, 229)',
+                                pointBackgroundColor: 'rgb(79, 70, 229)',
+                                borderWidth: 2
+                            },
+                            {
+                                label: '全國平均基準線',
+                                data: baselineData,
+                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                borderColor: 'rgb(16, 185, 129)',
+                                pointBackgroundColor: 'rgb(16, 185, 129)',
+                                borderDash: [4, 4],
+                                borderWidth: 2
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { r: { suggestMin: 0, suggestMax: 100, ticks: { stepSize: 20 } } },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+
+            updateRadarChart() {
+                this.initRadarChart();
+            }
+        }
+
+        const app = new IPASApp();
+        window.app = app;
+    </script>
+
+    <!-- 雲端帳號與錯題資料同步模組 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { 
+            getAuth, 
+            signInWithPopup, 
+            GoogleAuthProvider, 
+            signInWithEmailAndPassword, 
+            createUserWithEmailAndPassword, 
+            signOut, 
+            onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { 
+            getFirestore, 
+            doc, 
+            getDoc, 
+            setDoc 
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDhxgX8fVx0Ts3CppPYonzuHujkFvbO8O4",
+            authDomain: "ipas-exam-system.firebaseapp.com",
+            projectId: "ipas-exam-system",
+            storageBucket: "ipas-exam-system.firebasestorage.app",
+            messagingSenderId: "396493449842",
+            appId: "1:396493449842:web:ba1bb19ac782c6660770eb",
+            measurementId: "G-19GFJ325ZS"
+        };
+
+        try {
+            const fbApp = initializeApp(firebaseConfig);
+            const auth = getAuth(fbApp);
+            const db = getFirestore(fbApp);
+
+            const cloudService = {
+                async loginGoogle() {
+                    try {
+                        const provider = new GoogleAuthProvider();
+                        const cred = await signInWithPopup(auth, provider);
+                        return cred.user;
+                    } catch (err) {
+                        alert("Google 登入失敗：" + err.message);
+                        return null;
+                    }
+                },
+                async loginEmail(email, password) {
+                    try {
+                        const cred = await signInWithEmailAndPassword(auth, email, password);
+                        return cred.user;
+                    } catch (err) {
+                        if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+                            try {
+                                const regCred = await createUserWithEmailAndPassword(auth, email, password);
+                                alert("已自動為您建立新帳號並登入！");
+                                return regCred.user;
+                            } catch (regErr) {
+                                alert("註冊失敗：" + regErr.message);
+                                return null;
+                            }
+                        } else {
+                            alert("登入失敗：" + err.message);
+                            return null;
+                        }
+                    }
+                },
+                async logout() {
+                    await signOut(auth);
+                },
+                async syncData(uid, localWrongs, localHistory) {
+                    if (window.app && window.app.isResetting) return null;
+                    const userDocRef = doc(db, "ipas_users", uid);
+                    const snap = await getDoc(userDocRef);
+                    if (window.app && window.app.isResetting) return null;
+                    
+                    let cloudWrongs = [];
+                    let cloudHistory = [];
+
+                    if (snap.exists()) {
+                        const data = snap.data();
+                        cloudWrongs = Array.isArray(data.wrongs) ? data.wrongs : [];
+                        cloudHistory = Array.isArray(data.history) ? data.history : [];
+                    }
+
+                    const mergedWrongs = [...cloudWrongs];
+                    localWrongs.forEach(lw => {
+                        if (!mergedWrongs.some(cw => cw.id === lw.id)) {
+                            mergedWrongs.push(lw);
+                        }
+                    });
+
+                    const mergedHistory = [...cloudHistory];
+                    localHistory.forEach(lh => {
+                        const key = lh.id || lh.date;
+                        if (!mergedHistory.some(ch => (ch.id || ch.date) === key)) {
+                            mergedHistory.push(lh);
+                        }
+                    });
+
+                    await setDoc(userDocRef, {
+                        wrongs: mergedWrongs,
+                        history: mergedHistory,
+                        updatedAt: new Date().toISOString()
+                    }, { merge: true });
+
+                    return { wrongs: mergedWrongs, history: mergedHistory };
+                },
+                async overwriteCloud(uid, wrongs, history) {
+                    const userDocRef = doc(db, "ipas_users", uid);
+                    await setDoc(userDocRef, {
+                        wrongs: wrongs,
+                        history: history,
+                        updatedAt: new Date().toISOString()
+                    });
+                }
+            };
+
+            window.app.attachCloudService(cloudService);
+
+            onAuthStateChanged(auth, (user) => {
+                window.app.handleAuthChecked(user);
+            });
+
+        } catch (error) {
+            console.warn("Firebase 模組初始化失敗:", error);
+            window.app.handleAuthChecked(null);
+        }
+    </script>
+</body>
+</html>
