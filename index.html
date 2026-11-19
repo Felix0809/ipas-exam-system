@@ -1,0 +1,1458 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iPAS 食品品保工程師（初級）萬題考古模擬考系統</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js 支援技能雷達圖 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- 頂部導覽列 -->
+    <header class="bg-indigo-700 shadow-md text-white sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="app.switchTab('home')">
+                <span class="bg-indigo-600 p-2 rounded-lg font-bold text-xl">🛡️ iPAS</span>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">食品品保工程師（初級）萬題考古庫</h1>
+                    <p class="text-xs text-indigo-200">國家級鑑定標準 • 循序初始化同步版</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <div id="user-status-display" class="hidden md:flex items-center space-x-2 text-xs bg-indigo-800 px-3 py-1.5 rounded-full">
+                    <span class="w-2 h-2 rounded-full bg-slate-400" id="cloud-dot"></span>
+                    <span id="user-email-text" class="text-indigo-100">未登入</span>
+                </div>
+                <button id="auth-btn" onclick="app.openAuthModal()" class="bg-white text-indigo-700 hover:bg-indigo-50 font-bold px-4 py-2 rounded-lg text-sm transition shadow-sm cursor-pointer">
+                    ☁️ 雲端登入
+                </button>
+                <button onclick="app.factoryReset()" class="bg-red-600 hover:bg-red-700 text-white font-medium px-3 py-2 rounded-lg text-xs transition shadow-sm cursor-pointer" title="立即停止抓取並清空本機與雲端錯題及歷次考試資料">
+                    🗑️ 重置
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主內容區 -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6">
+        
+        <!-- 首頁儀表板 -->
+        <div id="view-home" class="space-y-6">
+            <div class="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-6 md:p-8 text-white shadow-lg flex flex-col md:flex-row justify-between items-center">
+                <div class="space-y-3 mb-6 md:mb-0">
+                    <span class="bg-indigo-500 text-indigo-100 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider">國家級能力鑑定 • 考試模式切換</span>
+                    <h2 class="text-2xl md:text-3xl font-bold">考點全涵蓋，智慧模擬與練習系統</h2>
+                    <p class="text-indigo-100 text-sm max-w-xl">
+                        正式考試標準：單科成績大於或等於 60 分且雙科平均大於或等於 70 分。單科練習模式則獨立顯示成績與單科解析。
+                    </p>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                    <button onclick="app.startOfficialExamSetup()" class="bg-amber-400 text-slate-900 hover:bg-amber-300 font-bold px-6 py-3 rounded-xl shadow transition text-center cursor-pointer">
+                        🏆 開始正式考試 (品保 -> 科學)
+                    </button>
+                    <button onclick="app.startPracticeSetup()" class="bg-white text-indigo-700 hover:bg-indigo-50 font-bold px-6 py-3 rounded-xl shadow transition text-center cursor-pointer">
+                        📖 單科自由練習
+                    </button>
+                    <button onclick="app.openRadarModal()" class="bg-indigo-800 text-white hover:bg-indigo-900 font-bold px-6 py-3 rounded-xl shadow transition border border-indigo-500 text-center cursor-pointer">
+                        📊 技能雷達圖
+                    </button>
+                </div>
+            </div>
+
+            <!-- 功能導覽卡片 -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div onclick="app.switchTab('wrong-book')" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition cursor-pointer flex items-center space-x-4">
+                    <div class="p-3 bg-red-50 text-red-600 rounded-xl text-2xl">📖</div>
+                    <div>
+                        <h3 class="font-bold text-lg text-slate-700">錯題解析與重練</h3>
+                        <p class="text-sm text-slate-500" id="home-wrong-count"></p>
+                    </div>
+                </div>
+
+                <div onclick="app.switchTab('history')" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition cursor-pointer flex items-center space-x-4">
+                    <div class="p-3 bg-blue-50 text-blue-600 rounded-xl text-2xl">📋</div>
+                    <div>
+                        <h3 class="font-bold text-lg text-slate-700">歷史作答記錄</h3>
+                        <p class="text-sm text-slate-500" id="home-history-count"></p>
+                    </div>
+                </div>
+
+                <div onclick="app.openRadarModal()" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition cursor-pointer flex items-center space-x-4">
+                    <div class="p-3 bg-purple-50 text-purple-600 rounded-xl text-2xl">🎯</div>
+                    <div>
+                        <h3 class="font-bold text-lg text-slate-700">技能評估分析</h3>
+                        <p class="text-sm text-slate-500">全國平均基準線對比</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 系統與雲端狀態指示 -->
+            <div id="cloud-status-banner" class="bg-slate-100 border border-slate-200 rounded-xl p-4 flex items-center justify-between transition-colors">
+                <div class="flex items-center space-x-3">
+                    <span class="text-2xl" id="cloud-banner-icon">💻</span>
+                    <div>
+                        <h4 class="font-bold text-slate-800 text-sm" id="cloud-banner-title">本機模式</h4>
+                        <p class="text-xs text-slate-600" id="cloud-banner-desc">可隨時點擊右上角「雲端登入」進行帳號同步。</p>
+                    </div>
+                </div>
+                <span id="cloud-banner-badge" class="bg-slate-200 text-slate-700 text-xs font-bold px-2.5 py-1 rounded-full">Local Mode</span>
+            </div>
+        </div>
+
+        <!-- 單科練習設定頁面 -->
+        <div id="view-setup" class="hidden max-w-xl mx-auto bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 space-y-6">
+            <h2 class="text-2xl font-bold text-slate-800">選擇單科練習科目 (固定 66 題不重複)</h2>
+            <div class="space-y-4">
+                <label class="block border-2 border-indigo-100 hover:border-indigo-500 rounded-xl p-4 cursor-pointer transition flex items-center space-x-4">
+                    <input type="radio" name="practice-subject" value="食品品保概論" checked class="w-5 h-5 text-indigo-600">
+                    <div>
+                        <div class="font-bold text-lg text-slate-800">科目一：食品品保概論</div>
+                        <div class="text-sm text-slate-500">涵蓋品保概況、衛生管理、品保基礎、食安文化、專有名詞、數位轉型、法規、GHP、HACCP、危害分析、追溯追蹤與標示。</div>
+                    </div>
+                </label>
+                <label class="block border-2 border-indigo-100 hover:border-indigo-500 rounded-xl p-4 cursor-pointer transition flex items-center space-x-4">
+                    <input type="radio" name="practice-subject" value="食品科學概論" class="w-5 h-5 text-indigo-600">
+                    <div>
+                        <div class="font-bold text-lg text-slate-800">科目二：食品科學概論</div>
+                        <div class="text-sm text-slate-500">涵蓋微生物檢驗、食品化學、檢驗與分析、加工技術、保存技術、微生物、食品加工與中毒菌管制。</div>
+                    </div>
+                </label>
+            </div>
+            <div class="flex space-x-3 pt-4">
+                <button onclick="app.switchTab('home')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition cursor-pointer">返回首頁</button>
+                <button onclick="app.startPracticeExam()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow transition cursor-pointer">開始單科練習 (66題)</button>
+            </div>
+        </div>
+
+        <!-- 正式考試說明與準備頁面 -->
+        <div id="view-official-setup" class="hidden max-w-xl mx-auto bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 space-y-6 text-center">
+            <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-3xl mx-auto">🏆</div>
+            <div>
+                <h2 class="text-2xl font-bold text-slate-800">iPAS 初級食品品保工程師 • 正式模擬考</h2>
+                <p class="text-sm text-slate-500 mt-2">
+                    正式考試流程：先進行 **「食品品保概論」**（66題不重複），交卷後顯示單科成績；隨後進入 **「食品科學概論」**（66題不重複），交卷後顯示單科成績，並進行雙科平均及格總結算！
+                </p>
+            </div>
+            <div class="flex space-x-3 pt-4">
+                <button onclick="app.switchTab('home')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition cursor-pointer">返回首頁</button>
+                <button onclick="app.launchOfficialExam()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-900 font-extrabold py-3 rounded-xl shadow transition cursor-pointer">開始正式考試</button>
+            </div>
+        </div>
+
+        <!-- 測驗作答頁面 -->
+        <div id="view-exam" class="hidden max-w-3xl mx-auto space-y-6">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex justify-between items-center sticky top-16 z-40">
+                <div>
+                    <span id="exam-title-badge" class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full">食品品保概論</span>
+                    <span id="exam-progress-text" class="text-sm font-medium text-slate-600 ml-2">第 1 題 / 共 66 題</span>
+                </div>
+                <div class="text-red-600 font-mono font-bold text-lg bg-red-50 px-3 py-1 rounded-lg" id="exam-timer">90:00</div>
+            </div>
+
+            <div class="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 space-y-6">
+                <div id="question-container" class="space-y-4"></div>
+
+                <div class="flex justify-between items-center pt-6 border-t border-slate-100">
+                    <button onclick="app.prevQuestion()" id="btn-prev" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-5 py-2.5 rounded-xl transition text-sm cursor-pointer">上一題</button>
+                    <button onclick="app.nextQuestion()" id="btn-next" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-xl shadow transition text-sm cursor-pointer">下一題</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 測驗單科結果與合格審核頁面 -->
+        <div id="view-result" class="hidden max-w-2xl mx-auto bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 space-y-6 text-center">
+            <div class="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center text-4xl mx-auto shadow-inner" id="result-icon">🏆</div>
+            <div>
+                <h2 class="text-2xl font-bold text-slate-800" id="result-main-title">單科測驗結算與成績</h2>
+                <p class="text-sm text-slate-500 mt-1" id="result-subject-name">食品品保概論</p>
+            </div>
+            
+            <div class="bg-slate-50 p-6 rounded-2xl space-y-4 border border-slate-100">
+                <div class="flex justify-around items-center">
+                    <div>
+                        <div class="text-xs text-slate-400 uppercase">單科得分</div>
+                        <div class="text-4xl font-extrabold text-indigo-600 mt-1" id="result-score">0</div>
+                    </div>
+                    <div class="h-10 w-px bg-slate-200"></div>
+                    <div>
+                        <div class="text-xs text-slate-400 uppercase">答對題數</div>
+                        <div class="text-4xl font-extrabold text-slate-700 mt-1" id="result-correct-count">0 / 66</div>
+                    </div>
+                </div>
+                
+                <div class="pt-4 border-t border-slate-200" id="pass-status-container"></div>
+            </div>
+
+            <div class="flex space-x-3 pt-4">
+                <button onclick="app.switchTab('home')" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition cursor-pointer">返回首頁</button>
+                <button id="result-action-btn" onclick="app.handleResultNextStep()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow transition cursor-pointer">進入下一科</button>
+            </div>
+        </div>
+
+        <!-- 錯題本頁面 -->
+        <div id="view-wrong-book" class="hidden max-w-4xl mx-auto space-y-6">
+            <div class="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800">錯題解析與重練專區</h2>
+                    <p class="text-sm text-slate-500">系統自動彙整您答錯的題目，提供觀念解析與針對性重練。</p>
+                </div>
+                <button onclick="app.switchTab('home')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-xl text-sm transition cursor-pointer">返回首頁</button>
+            </div>
+            <div id="wrong-list-container" class="space-y-4"></div>
+        </div>
+
+        <!-- 歷史記錄頁面 -->
+        <div id="view-history" class="hidden max-w-4xl mx-auto space-y-6">
+            <div class="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800">歷次作答完整記錄</h2>
+                    <p class="text-sm text-slate-500">完整保留每一次的交卷成績與試卷詳情。</p>
+                </div>
+                <button onclick="app.switchTab('home')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-xl text-sm transition cursor-pointer">返回首頁</button>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-100">
+                                <th class="p-4">測驗時間</th>
+                                <th class="p-4">報考科目</th>
+                                <th class="p-4">得分</th>
+                                <th class="p-4">答對率</th>
+                                <th class="p-4 text-right">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body" class="divide-y divide-slate-100 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 雲端登入與帳號管理 Modal -->
+    <div id="auth-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden p-6 space-y-6">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-xl text-slate-800">☁️ 雲端帳號登入</h3>
+                <button onclick="app.closeAuthModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold cursor-pointer">&times;</button>
+            </div>
+
+            <!-- 未登入面板 -->
+            <div id="auth-logged-out-panel" class="space-y-4">
+                <p class="text-xs text-slate-500">請登入帳號以同步雲端錯題；若直接關閉此視窗，系統將改為使用本機資料。</p>
+                <button onclick="app.loginWithGoogle()" class="w-full flex items-center justify-center space-x-3 border-2 border-slate-200 hover:border-indigo-500 p-3 rounded-xl font-bold text-slate-700 transition cursor-pointer">
+                    <span>🌐</span>
+                    <span>使用 Google 帳號快速登入</span>
+                </button>
+                <div class="relative flex py-1 items-center">
+                    <div class="flex-grow border-t border-slate-200"></div>
+                    <span class="flex-shrink mx-3 text-xs text-slate-400">或使用 Email 登入 / 註冊</span>
+                    <div class="flex-grow border-t border-slate-200"></div>
+                </div>
+                <div class="space-y-3">
+                    <input type="email" id="auth-email" placeholder="電子郵件" class="w-full border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <input type="password" id="auth-password" placeholder="密碼（至少 6 位數）" class="w-full border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <button onclick="app.loginWithEmail()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow transition text-sm cursor-pointer">登入 / 自動註冊</button>
+                </div>
+                <button onclick="app.closeAuthModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl transition text-xs cursor-pointer">
+                    略過登入並關閉
+                </button>
+            </div>
+
+            <!-- 已登入面板 -->
+            <div id="auth-logged-in-panel" class="hidden space-y-4">
+                <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl text-center space-y-1">
+                    <div class="text-xs text-emerald-600 font-bold">✅ 雲端帳號已連線</div>
+                    <p class="text-sm text-emerald-900 font-bold break-all" id="auth-modal-user-email"></p>
+                    <p class="text-xs text-slate-500 pt-1" id="last-sync-time">狀態：已同步</p>
+                </div>
+                <button onclick="app.closeAuthModal()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition text-sm cursor-pointer">
+                    確認
+                </button>
+                <button onclick="app.logout()" class="w-full bg-red-50 hover:bg-red-100 text-red-600 font-bold py-3 rounded-xl transition text-sm cursor-pointer">
+                    登出雲端帳號
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 技能評估雷達圖 Modal -->
+    <div id="radar-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="bg-gradient-to-r from-indigo-700 to-violet-700 text-white p-6 flex justify-between items-center">
+                <h3 class="font-bold text-xl" id="radar-user-title">技能評估分析</h3>
+                <button onclick="app.closeRadarModal()" class="text-white/80 hover:text-white text-2xl font-bold cursor-pointer">&times;</button>
+            </div>
+            <div class="p-6 overflow-y-auto space-y-4 flex-grow">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">選擇考科：</label>
+                    <select id="radar-subject-select" onchange="app.updateRadarChart()" class="w-full border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50">
+                        <option value="食品品保概論">食品品保概論</option>
+                        <option value="食品科學概論">食品科學概論</option>
+                    </select>
+                </div>
+                <div class="relative w-full h-72 bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-center justify-center">
+                    <canvas id="radarCanvas"></canvas>
+                </div>
+            </div>
+            <div class="p-4 bg-slate-50 border-t border-slate-100 text-center">
+                <button onclick="app.closeRadarModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition cursor-pointer">關閉分析</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 歷史試卷詳情檢視 Modal -->
+    <div id="history-detail-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="bg-slate-800 text-white p-6 flex justify-between items-center">
+                <h3 class="font-bold text-xl">試卷作答詳情檢視</h3>
+                <button onclick="app.closeHistoryDetailModal()" class="text-slate-400 hover:text-white text-2xl font-bold cursor-pointer">&times;</button>
+            </div>
+            <div class="p-6 overflow-y-auto space-y-6 flex-grow" id="history-detail-content"></div>
+            <div class="p-4 bg-slate-50 border-t border-slate-100 text-right">
+                <button onclick="app.closeHistoryDetailModal()" class="bg-slate-700 hover:bg-slate-800 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition cursor-pointer">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 核心應用程式邏輯：每科 66 題完全獨立題目，組卷嚴格去重複 -->
+    <script>
+        function stripQuestionPrefix(text) {
+            if (typeof text !== 'string') return text;
+            return text.replace(/^【[^】]*】\s*/, '').trim();
+        }
+
+        function generateUniqueQuestionBank() {
+            const qaItems = [
+                ["食品法規與GHP", "食品良好衛生規範準則（GHP）規定，食品從業人員在職期間應多久接受健康檢查至少一次？", "每年至少一次", "每三年至少一次", "每五年至少一次", "僅於新進報到時檢查一次", "依GHP規定，新進人員應先經衛生醫療機構檢查合格後始得聘僱，在職期間每年應主動健康檢查至少一次。"],
+                ["食品法規與GHP", "食品業者登錄制度中，登錄內容發生變更時，應於事實發生之日起幾日內申請變更？", "30 日內", "7 日內", "90 日內", "180 日內", "依食安法第8條第3項規定，登錄內容有變更者，應於事實發生之日起30日內申請變更。"],
+                ["食品法規與GHP", "食品作業場所內之照明設備，若裝置於食品暴露之正上方，應採取何種安全防護措施？", "使用防爆或加裝防碎燈罩等安全防護裝置", "僅需使用LED燈泡即可免加裝防護裝置", "將燈具亮度調低以減少熱輻射", "改用白熾燈泡並拆除燈罩以利散熱", "作業場所照明光線應充足，若裝設於食品暴露正上方應加裝防碎或防爆裝置，防止玻璃碎片掉落污染食品。"],
+                ["食品法規與GHP", "食品工廠洗手設施之配置，下列何者符合GHP衛生要求？", "採用非手動式水龍頭（如腳踏、膝動或感應式），並備有清潔劑、烘手器或擦手紙", "僅提供冷水與一般毛巾擦拭雙手即可", "洗手台應設置於廁所內部，方便人員如廁後直接進入產線", "水龍頭開關需由作業員戴手套直接轉開", "食品作業場所洗手設施應避免手部二次污染，宜採感應、腳踏或肘動式水龍頭，並備有洗手劑及擦手紙或烘手器。"],
+                ["食品法規與GHP", "病媒防治作業使用環境用藥時，下列何者為正確管理原則？", "選用環保署核准之環境用藥，並嚴格控管施藥範圍與濃度，避免污染食品及接觸面", "可隨時於生產線上直接噴灑高濃度殺蟲劑", "將殺蟲劑分裝於無標示之寶特瓶放置於原料區", "病媒防治由各產線員工自行調配化學藥劑噴灑", "病媒防治應由合格人員或依規定執行，使用核准藥劑並防止污染食品、包材與設備表面。"],
+                ["食品法規與GHP", "食品業者發現產品有危害衛生安全之虞時，應依食安法規定採取下列哪項行動？", "立即停止製造、加工、販賣及辦理回收，並通報直轄市、縣（市）主管機關", "先低調折價出清庫存，若無客訴則不需通報", "僅需通知下游盤商私下退貨，無須通知主管機關", "將問題產品改標換批號後重新上架販售", "依食安法第7條第5項，食品業者於發現產品有危害衛生安全之虞時，應即主動停止製造、加工、販賣及辦理回收，並通報主管機關。"],
+                ["食品法規與GHP", "清潔劑、消毒劑及有毒化學物質在食品工廠中之存放管理，何者最適當？", "專區專櫃上鎖存放，明確標示品名，且與食品及包材分開隔離", "與食品添加物置於同一貨架以方便取用", "放在製程機台旁地面以縮短清潔動線", "使用完畢後隨意放置於員工休息室置物櫃", "有毒及有害物質應與食品、食品添加物及包材嚴格隔離存放，並明確標示及專人管理。"],
+                ["食品法規與GHP", "食品從業人員於作業期間發現手部有化膿傷口時，應如何處置？", "立即停止接觸食品之作業，經妥善包紮並依規定處理後再評估是否調離直接接觸食品工作", "戴上一般棉質手套即可繼續包裝作業", "塗抹優碘後繼續徒手分裝食材", "隱瞞傷口並加快作業速度下班", "手部有化膿、外傷或皮膚病時易污染食品，應避免直接接觸食品或食材。"],
+                ["食品法規與GHP", "廢棄物處理區之設置與管理，下列敘述何者正確？", "應與食品作業場所區隔，廢棄物容器具加蓋並定時清理，防止惡臭與病媒孳生", "廢棄物可直接堆放於原料驗收區門口", "廚餘桶不需加蓋以利通風散熱", "廢棄物清理車輛可駛入清潔區裝載", "廢棄物應妥善分類與加蓋密封，並與製程及食品儲存區隔開，避免交叉污染與病媒滋生。"],
+                ["食品法規與GHP", "食品工廠之「清潔區」、「準清潔區」與「一般作業區」劃分目的為何？", "依污染風險高低進行分區管制與動線區隔，降低交叉污染風險", "僅為區分員工薪資等級與排班表", "依廠房建築完工年份進行編號", "讓所有訪客皆可自由進出清潔區參觀", "透過分區管理與人流、物流、氣流管制，可有效阻絕微生物與物理性危害由高風險區向低風險區擴散。"],
+                ["HACCP與品保系統", "HACCP 系統中「重要管制點（CCP）」的定義為何？", "可實施控制措施，且對預防、消除或降低食品安全危害至可接受水準而言屬必要之步驟、程序或管制點", "工廠內所有溫度計或磅秤的所在位置", "僅指成品入庫前的包裝貼標步驟", "主管機關每年稽核時必查的書面文件", "CCP 是能有效防止、消除食安危害或將其降至可接受程度的關鍵步驟，一旦失控可能導致危害發生。"],
+                ["HACCP與品保系統", "當 CCP 監控結果顯示偏離「關鍵界限（CL）」時，首要應執行下列何項步驟？", "立即執行事先制定的矯正措施，管制受影響批次產品並追查原因", "假裝沒看到並繼續生產該批次產品", "直接修改監控紀錄表上的數值使其符合標準", "等待下個月內部稽核時再一併檢討", "一旦偏離關鍵界限，必須立即啟動矯正措施，隔離或處置可能不安全產品，並矯正製程使其恢復受控。"],
+                ["HACCP與品保系統", "下列何者屬於 HACCP 計畫書中「危害分析」所涵蓋的三大危害類別？", "生物性危害、化學性危害、物理性危害", "財務性危害、行銷性危害、人力性危害", "品牌性危害、包裝設計危害、運輸塞車危害", "設備折舊危害、電費上漲危害、稅務危害", "食品安全危害主要分為生物性（病原菌、病毒、寄生蟲）、化學性（農藥、重金屬、 allergens、毒素）與物理性（金屬、玻璃、塑膠異物）。"],
+                ["HACCP與品保系統", "建立 HACCP 系統前，必須先具備穩固的何種基礎方案？", "食品良好衛生規範（GHP）與先期方案（PRP）", "完整的廣告行銷預算與通路合約", "高階主管年度績效考核辦法", "廠區綠化與景觀設計藍圖", "GHP 與先期方案是 HACCP 運作的基石，若基本衛生與環境未受控，HACCP 難以有效運作。"],
+                ["HACCP與品保系統", "在制定 HACCP 計畫時，「危害分析決策樹（Decision Tree）」主要用於協助什麼？", "判斷某個製程步驟或危害是否為重要管制點（CCP）", "計算食品熱量與營養標示數值", "決定員工年終獎金發放比例", "挑選最適合的物流貨運公司", "危害分析決策樹透過一系列邏輯提問，協助品保團隊客觀判定某項危害是否需要設為 CCP。"],
+                ["HACCP與品保系統", "針對金屬異物風險，在包裝前設置金屬檢出器（Metal Detector），此步驟最常被設定為？", "重要管制點（CCP）或關鍵品管點", "原料供應商評鑑表", "員工休息室門禁管制", "產品外箱設計審查", "金屬檢出器能直接偵測並剔除金屬異物，是降低物理性危害的重要管制點。"],
+                ["HACCP與品保系統", "HACCP 七大原則中，關於「建立監控程序」之重點為何？", "明確規定監控對象、監控方法、監控頻率及負責人員，確保 CCP 持續處於受控狀態", "僅於產品上市後由消費者回報是否安全", "每五年抽查一次紀錄即可", "由無受過訓練之臨時工隨意目測記錄", "監控程序必須具備即時性或足夠頻率，能及時發現關鍵界限偏離並提供紀錄佐證。"],
+                ["HACCP與品保系統", "HACCP 計畫書之「確效（Validation）」主要目的為何？", "在實施前或變更時，透過科學或技術證據證明所設定之管制措施與關鍵界限確實能有效控制危害", "確認員工是否準時上下班打卡", "檢查紙箱印刷顏色是否與設計稿一致", "核對發票金額與採購單是否相符", "確效（Validation）強調事前或變更前證明控制措施「有效」；確認（Verification）則側重日常執行是否「符合且持續有效」。"],
+                ["HACCP與品保系統", "下列何者屬於 HACCP 系統運作下的「紀錄保存」原則要求？", "紀錄應真實、完整、即時填寫並妥善保存，以利追溯與驗證系統運作", "可在月底一次補寫整個月的殺菌溫度紀錄", "紀錄紙張受潮或塗改模糊仍可直接使用", "所有紀錄在交卷當日即可銷毀", "完整的紀錄是證明製程受控與食安盡責的重要證據，不可造假或隨意滅失。"],
+                ["HACCP與品保系統", "若食品工廠新增一條生產線或更換殺菌設備，HACCP 團隊應如何處理？", "重新進行危害分析與 HACCP 計畫審查，必要時更新 CCP、CL 與監控程序", "沿用舊產線計畫書即可，無須重新評估", "僅需更換紀錄表單標題，內容不必修改", "等發生客訴後再考慮是否更新計畫書", "製程、設備、原料或包材有重大變更時，必須重新檢視危害分析與管制計畫。"],
+                ["追溯與標示", "包裝食品品名標示規定中，若產品名稱與其他食品品名易混淆時，應如何標示？", "應於品名中標示足以顯示其性質之名稱，或依規定標示「口味」、「風味」或「意象」等字樣", "可隨意使用知名品牌名稱作為品名", "只需在廣告傳單說明，包裝上可不標示", "標示「特級」二字即可免除性質說明", "為避免誤導消費者，品名應真實反映食品本質，若含香料或特定風味成分，須依規定標示風味或相關字樣。"],
+                ["追溯與標示", "包裝食品營養標示中，若某項營養素含量為 0，其標示方式應符合何規定？", "依包裝食品營養標示應遵行事項之基準表規定，符合「得以 0 標示」條件者方可標示為 0", "只要數值小於 10 即可一律標示為 0", "由廠商自行決定是否標示為 0", "所有維生素皆不可標示為 0", "營養標示數值須符合規定之修整與「得以 0 標示」條件，避免虛假或誤導。"],
+                ["追溯與標示", "食品有效日期之標示方式，下列何者符合我國法規？", "依年、月、日順序標明；保存期限在 3 個月以上者，得僅標明至年、月，並以該月之末日為終止日", "可隨意使用密碼或暗號標示有效日期", "保存期限 2 年的罐頭可只標示製造日期而不標有效日期", "有效日期可貼在容易脫落之封口貼紙上且不具牢固性", "有效日期應清楚標示於容器或包裝上，不得塗改或偽造，保存期限3個月以上者得標至年月（視同該月最後一日）。"],
+                ["追溯與標示", "建立食品追溯追蹤系統時，上游原料驗收至少應記錄哪些關鍵資訊？", "供應商名稱/登錄字號、進貨日期、品項名稱、批號或有效日期及數量", "僅需記錄司機姓名與車牌號碼即可", "只需記下總付款金額", "僅於原料抽驗不合格時才需要建檔", "完整的進貨追溯紀錄能快速鎖定受影響批號與供應商，縮短異常調查時間。"],
+                ["追溯與標示", "食品添加物於包裝食品內容物名稱之標示原則為何？", "應標明其「品名」或「功能性名稱」（如抗氧化劑、防腐劑、甜味劑等），複方添加物應標示各組成成分", "只要標示「食品添加物」四個字即可涵蓋全部", "含量低於 5% 的食品添加物可完全免標", "僅需在官網公告，包裝上無須列出", "食安法第22條規定內容物應由高至低標示，食品添加物並應標明使用之品名或功能性名稱。"],
+                ["追溯與標示", "散裝食品標示規定中，販售現場通常應標示哪些基本資訊？", "品名及原產地（國）等法定應標示項目（依公告類別包含重組肉、基因改造等）", "散裝食品完全不受任何標示法規規範", "只需標示價格即可，不需標示原產地", "僅需在倉庫留存標示資料，門市不需展示", "依食安法第25條及相關公告，散裝食品於販售時應以牌示、卡片或標示牌等方式揭露品名與原產地等資訊。"],
+                ["追溯與標示", "基因改造食品原料之標示管理，下列敘述何者正確？", "直接使用基因改造食品原料者應明確標示「基因改造」或「含基因改造」字樣，非基改則須符合相關規範", "只要經過煮熟加工，基改原料就不需要標示", "基改玉米粉可標示為「百分之百天然有機」", "僅進口服飾需標示基改，食品不在此限", "基因改造食品原料標示旨在保障消費者知情權與選擇權，須依規定清楚標示。"],
+                ["追溯與標示", "當發生產品回收時，追溯追蹤系統能發揮哪一項關鍵功能？", "快速比對流向與庫存，精準掌握問題批號去向並通知相關通路下架回收", "自動將過期食品轉化為合法新批號", "免除向衛生主管機關通報之義務", "直接消除微生物污染", "精準的追溯與追蹤是執行預防性下架與回收（Recall）的核心工具。"],
+                ["追溯與標示", "食品包裝上標示「製造廠商」資訊時，下列何者最為完整？", "廠商名稱、地址及電話號碼（委託製造則須標示委託與受託廠商資訊）", "僅寫一個英文縮寫即可", "只填寫郵政信箱號碼，不需地址與電話", "僅標示經銷商名稱即可", "清楚標示製造或負責廠商名稱、地址與電話，有助於消費者查詢與主管機關聯繫。"],
+                ["追溯與標示", "食品標示不得有「不實、誇張或易生誤解」之情事，下列何者最可能觸法？", "宣稱具有「預防、改善或治療疾病」或「減肥瘦身」等醫療效能或誇大詞句", "客觀標示產品淨重 500 公克", "標示實際使用之原料產地為臺灣", "清楚列出過敏原警語「本產品含有牛奶」", "食安法第28條明文禁止食品標示、宣傳或廣告有不實、誇張、易生誤解或涉及醫藥效能之情形。"],
+                ["品保基礎與名詞", "PDCA 循環在品質管理系統中的四個階段依序為何？", "Plan（計畫）、Do（執行）、Check（查核/檢查）、Act（行動/處置）", "Price（定價）、Delivery（交貨）、Cost（成本）、Audit（稽核）", "Prepare（準備）、Design（設計）、Clean（清潔）、Approve（核准）", "Plan（計畫）、Deploy（部署）、Cancel（取消）、Archive（封存）", "PDCA 是戴明循環（Deming Cycle），透過持續規劃、執行、查核與矯正行動達成持續改善。"],
+                ["品保基礎與名詞", "何謂「追溯性（Traceability）」？", "透過已記錄之鑑別資訊，追蹤實體、活動或過程之歷史、應用或所在位置的能力", "僅指將產品送至實驗室做農藥殘留檢驗", "指包裝袋撕開後是否容易扯斷的特性", "指冷凍庫溫度降至零下 18 度的時間", "追溯性核心在於「有紀錄可循」，能順向追蹤（Tracking）與逆向追溯（Tracing）。"],
+                ["品保基礎與名詞", "在品管統計工具中，「柏拉圖（Pareto Chart）」主要用於？", "找出影響品質或異常問題中最關鍵的少數主要原因（80/20 法則）", "繪製連續製程溫度隨時間變化的趨勢線", "比較兩個不同樣本平均數是否有顯著差異", "顯示產品水分含量與保存期限的相關係數", "柏拉圖結合長條圖與累積百分比曲線，協助聚焦優先改善的關鍵少數（Vital Few）。"],
+                ["品保基礎與名詞", "製程管制中「管制圖（Control Chart）」出現點子超出上下管制界限（UCL/LCL），代表？", "製程可能存在「特殊原因（Assignable Cause）」變異，處於非統計受控狀態，需調查原因", "表示產品完全不需要做任何檢驗即可出貨", "代表管制界限繪製錯誤，應直接刪除該點", "表示該製程已達到最高品質水準，無須改善", "管制圖用於區分「逢機原因」與「特殊原因」變異，出現異常點或違規型態時應介入調查。"],
+                ["品保基礎與名詞", "「允收品質水準（AQL）」在抽樣檢驗中的意義為何？", "在連續抽樣檢驗中，可被接受之製程平均不良率最大上限參考值", "代表整批產品絕對零缺點的保證", "指檢驗儀器允許的最大誤差範圍", "代表實驗室人員的薪資水準", "AQL 是抽樣計畫中用來界定可接受品質水準的統計指標，需搭配抽樣水準與檢驗嚴格度使用。"],
+                ["品保基礎與名詞", "何謂「防呆裝置（Poka-Yoke）」？", "透過設計或防錯機制，使作業人員不容易犯錯，或在犯錯前即能預防或警示", "在機台旁貼上「小心操作」的警告標語", "發生錯誤後才扣減作業員獎金的制度", "讓設備在無預警情況下隨機停機", "防呆設計從源頭或操作介面降低人為失誤機率，例如不同規格接頭防誤接設計。"],
+                ["品保基礎與名詞", "內部稽核（Internal Audit）執行時，稽核員應秉持何種原則？", "客觀性、獨立性與證據導向，避免稽核自己直接負責之作業", "針對熟識部門放寬標準，對其他部門刻意刁難", "僅憑個人主觀印象下結論，不需查核紀錄", "稽核前先通知受稽核單位竄改表單", "內部稽核應保持客觀公正，依據客觀證據（紀錄、訪談、現場觀察）比對標準符合性。"],
+                ["品保基礎與名詞", "「矯正措施（Corrective Action）」與「矯正（Correction）」之差異為何？", "矯正是消除已發現之不符合事項本身；矯正措施則是消除不符合事項發生之根本原因以防再發", "兩者完全相同，只是英文拼法不同", "矯正是針對原料；矯正措施只針對行政人員", "矯正由總經理執行；矯正措施由警衛執行", "消除表面異常叫矯正（Correction），找出根本原因（Root Cause）並改善系統防止再發生叫矯正措施（Corrective Action）。"],
+                ["食安文化與事件", "建立良好食品安全文化時，高階主管最關鍵的作為是？", "提供充足資源、以身作則支持食安政策，並營造敢於回報異常的開放氛圍", "只要求降低成本，對食安異常採取懲處與隱匿", "將食安委員會會議改為每五年召開一次", "不參與任何食安相關訓練與檢討", "高階管理者的承諾與行為示範是形塑食品安全文化的核心驅動力。"],
+                ["食安文化與事件", "當員工在現場發現潛在食安風險卻不敢上報，通常反映出哪一方面的問題？", "食品安全文化或溝通機制不足，缺乏心理安全感與暢通的回報管道", "代表廠區完全沒有任何食安風險", "表示包裝材料品質極佳", "說明冷鏈溫度非常穩定", "若員工擔心被責怪或認為回報無效而選擇隱匿，將增加食安事件爆發的風險。"],
+                ["食安文化與事件", "面對食安危機或疑似中毒事件時，企業危機處理的第一要務是？", "以消費者健康安全為最高優先，迅速止血、封存可疑批號並配合主管機關調查", "第一時間對外否認並推卸責任給供應商", "銷毀相關批號的生產與檢驗紀錄", "拒絕接聽媒體與主管機關查詢電話", "危機應變首重保護消費者安全、控制風險擴大及透明即時的溝通與追溯。"],
+                ["食安文化與事件", "食品詐欺（Food Fraud）常見手法包含下列何者？", "摻偽假冒、以劣充優、竄改有效日期或虛報產地以牟取不當利益", "依規定完整標示成分與營養標示", "定期進行儀器校正與微生物檢驗", "建立完整的供應商稽核制度", "食品詐欺是指蓄意且具有經濟動機的違規或欺騙行為，如摻假、調包或偽造標示。"],
+                ["食安文化與事件", "脆弱性評估（VACCP / TACCP）主要針對哪兩類風險進行防護？", "VACCP 針對食品詐欺脆弱性；TACCP 針對蓄意威脅（如蓄意污染、破壞）之防護", "VACCP 針對包裝美觀；TACCP 針對運輸油耗", "VACCP 針對員工出勤；TACCP 針對薪資發放", "VACCP 針對廣告預算；TACCP 針對門市裝潢", "VACCP（Vulnerability Assessment for Critical Control Points）與 TACCP（Threat Assessment）強化防範蓄意與詐欺風險。"],
+                ["數位轉型", "食品工廠導入電子化批次紀錄（EBR）相較於傳統紙本紀錄，主要優勢為何？", "減少漏寫與字跡潦草問題，具備時間戳記、權限控管與快速檢索追溯能力", "完全不需要設定任何帳號密碼", "可自動讓過期原料延長保存期限", "免除任何備份機制", "電子紀錄可提升查詢效率與稽核軌跡（Audit Trail）管理，但仍須做好權限與備份控管。"],
+                ["數位轉型", "冷鏈物流導入溫度資料記錄器（Data Logger）與雲端監控之主要好處是？", "可持續記錄運輸與儲存溫度變化，一旦超溫立即告警，釐清冷鏈斷鏈責任", "可讓常溫貨車變成冷凍車", "不需要定期進行溫度感測器校正", "可取代所有物理包裝材料", "即時或連續溫度監控有助於掌握冷鏈完整性，及早發現溫層異常。"],
+                ["數位轉型", "在推動品保數位化轉型時，下列何者是常見的導入瓶頸？", "基層人員操作習慣差異、系統與現場流程未整合，以及主數據（Master Data）不一致", "電腦螢幕解析度太高", "網際網路速度太快", "報表字體太整齊", "數位轉型不只是買軟體，更涉及流程再造、數據標準化與人員教育訓練。"],
+                ["數位轉型", "利用條碼（Barcode）或 QR Code 連結批次資訊，在品管上最直接的應用是？", "掃描即可快速查詢原料批號、檢驗報告與生產履歷，提升抽驗與召回效率", "可自動殺滅包裝內的細菌", "可讓食品熱量降為零", "可延長產品保存期限至十年", "條碼與 QR Code 串聯資訊系統，能加速現場核對、庫存管理與追溯查詢。"],
+                ["數位轉型", "數位化品管數據進行統計分析時，首要步驟通常為？", "資料清理與格式確認（排除異常缺漏值、統一單位與編碼），確保分析結果可靠", "直接套用隨意產生的亂數進行決策", "刪除所有低於平均值的數據", "只保留對自己有利的單一筆資料", "垃圾進、垃圾出（Garbage In, Garbage Out），數據品質決定分析與決策品質。"],
+                ["食品法規與GHP", "食品工廠用水若使用地下水，應符合何種衛生要求？", "水源應與污染源保持適當距離，並定期進行水質檢驗符合飲用水或相關衛生標準", "地下水天然純淨，永遠不需要做任何水質檢測", "可直接用於清洗沾有油污的地板而不需管理", "儲水槽可長年不清洗", "無論自來水或地下水，用於食品接觸或清洗之用水均須符合衛生標準並定期監測。"],
+                ["食品法規與GHP", "包裝材料進入食品工廠驗收時，應確認哪些項目？", "外觀完整無污染、符合食品器具容器包裝衛生標準及相關材質規定，必要時查驗合格證明", "只要價格便宜即可整批入庫", "破損或受潮的紙箱可直接用於裝填散裝食品", "不需核對供應商與品名規格", "包材直接接觸食品或影響保護功能，驗收時須確認衛生安全與規格符合性。"],
+                ["食品法規與GHP", "冷凍庫與冷藏庫之溫度管理，下列何者較為適當？", "冷藏食品通常維持在 7°C 以下、冷凍食品維持在 -18°C 以下，並定時記錄溫度", "冷凍庫溫度維持在 15°C 即可", "冷藏庫門可長時間敞開不關", "溫度計損壞可先暫停記錄三個月", "低溫儲存是抑制微生物繁殖的重要手段，須依產品特性維持適當溫層並監控。"],
+                ["HACCP與品保系統", "在擬定 HACCP 計畫前，應先完成哪項基礎文件以清楚界定產品與流程？", "產品說明書（Product Description）與製程流程圖（Flow Diagram），並至現場核對流程圖正確性", "先印製一萬份產品DM", "先決定員工旅遊地點", "先購買新的辦公椅", "正確的產品描述與經現場確認（On-site verification）的流程圖是危害分析的起點。"],
+                ["HACCP與品保系統", "對於低酸性罐頭食品（pH > 4.6），殺菌製程中最需高度警戒的致病菌為何？", "肉毒桿菌（Clostridium botulinum）", "乳酸桿菌（Lactobacillus）", "啤酒酵母菌（Saccharomyces cerevisiae）", "黑黴菌（Aspergillus niger）", "低酸性罐頭若殺菌不足，肉毒桿菌芽孢可能在厌氧環境萌發並產生致命神經毒素。"],
+                ["HACCP與品保系統", "供應商管理中，對高風險原料供應商進行實地稽核（On-site Audit）的主要目的為何？", "實地查核其 GHP/HACCP 落實程度、製程管制與品質系統可靠性，降低原料風險", "只是去供應商工廠吃午餐", "確認供應商辦公室裝潢是否豪華", "取代所有進貨檢驗且永不抽驗", "實地稽核能深入了解供應商實際管理現況，是源頭管理的重要環節。"],
+                ["追溯與標示", "包裝食品標示「淨重、容量或數量」時，應以何種單位標示？", "採用法定度量衡單位（如公克、公斤、毫升、公升或個數等）標示", "可使用台斤、兩、英吋等非規定單位任意混用", "可省略單位只寫一個數字", "重量誤差可高達 50% 不需控管", "食品標示應依規定使用法定度量衡單位，並確保實際內容物符合標示規範。"],
+                ["追溯與標示", "食品過敏原標示中，若產品製程中可能因設備共用而有微量交叉污染風險，應如何處理？", "強化清潔驗證與排程管制降低交叉污染，必要時依規定標示警語，切勿濫用警語取代管理", "隨意在所有產品都印上「可能含有所有過敏原」以規避責任", "完全不需進行產線清潔", "僅對外銷產品標示即可", "交叉接觸預防應以製程與清潔管制為主，警語標示須符合法規且不可作為管理鬆懈的藉口。"],
+                ["追溯與標示", "食品標示之字體大小與清晰度，法規基本要求為何？", "應清晰易辨識，不得以模糊、字體過小或背景色相近致難以閱讀之方式呈現", "字體越細小越不容易被發現越好", "可印在深色底紋上使用極暗色字體", "可用鉛筆手寫於不起眼角落", "標示資訊必須讓消費者清楚閱讀，才能發揮資訊揭露與食安保障作用。"],
+                ["品保基礎與名詞", "在品質管理中，「重工（Rework）」產品應如何管理？", "需經評估確認不影響安全性與品質，並訂定明確重工比例、時限與追溯紀錄", "所有退貨或不良品皆可直接混入正常品出貨", "重工不需要任何紀錄", "只要重新換個塑膠袋就算全新產品", "重工涉及二次加工與品質變異風險，必須有明確規範、風險評估與完整追溯。"],
+                ["品保基礎與名詞", "量測儀器（如溫度計、酸鹼度計、電子秤）必須定期「校正（Calibration）」，主要目的為何？", "確保量測數據準確可靠並可追溯至國家或國際標準，避免誤判製程或檢驗結果", "讓儀器外觀看起來比較新", "增加品保部門的工作量", "延長儀器保固期十年", "未經校正或失準的量測儀器可能導致殺菌不足或檢驗誤判，危及食品安全。"],
+                ["品保基礎與名詞", "「不符合事項（Nonconformity）」發生時，第一步通常是？", "明確描述不符合事實與對應標準條款，並採取立即處置（如隔離、暫停）防止擴大", "先指責其他部門人員態度不佳", "將不符合報告藏起來不讓主管看到", "直接關閉系統假裝沒發生", "釐清事實、隔離風險與立即處置，是處理不符合事項的標準第一步。"],
+                ["食安文化與事件", "食品工廠推動教育訓練時，下列何者最有助於提升實務成效？", "結合實際案例、現場示範與考核回饋，針對不同職能設計課程", "整年只發一份法規條文影本讓員工自行閱讀", "訓練內容與現場作業完全脫節", "上課時讓員工睡覺不作任何互動", "實務導向與分層分角色的訓練能幫助員工真正理解「為什麼要做」與「該怎麼做」。"],
+                ["食安文化與事件", "當發現供應商提供之檢驗報告有造假疑慮時，品保人員應如何處置？", "立即啟動異常通報與原料暫停使用/驗收複查，並評估更換或重新稽核供應商", "直接相信報告內容並放行使用", "自行修改報告日期後歸檔", "等客訴發生後再處理", "面對文件真實性疑慮，應採取審慎查核與風險控管措施，切勿輕信未經驗證之文件。"],
+                ["食安文化與事件", "食品安全管理系統（如 ISO 22000）強調「風險思維（Risk-based Thinking）」，其核心精神是？", "在問題發生前辨識潛在風險與機會，採取預防措施並依風險高低配置資源", "只在發生重大事故後才被動應付", "所有項目平均分配資源，不區分風險高低", "完全依賴運氣不會出事", "風險思維要求將風險評估融入日常規劃、運作與改善中，事前預防勝於事後補救。"],
+                ["數位轉型", "食品工廠導入條碼掃描進行原料入庫檢核，主要可預防哪種錯誤？", "拿錯原料品項、使用逾期原料或漏登批號等人工核對疏失", "可讓生鮮肉品不會腐敗", "可免除所有環境清潔工作", "可自動通過政府稽核", "條碼核對能快速比對品項與效期資訊，顯著降低人為看錯、拿錯的風險。"],
+                ["數位轉型", "針對溫濕度監控系統設定「預警門檻（Warning Limit）」而非僅設「警報門檻（Action Limit）」，用意為何？", "在尚未真正超標失控前及早提醒人員介入調整，降低異常與報廢風險", "讓警報器整天響個不停", "延長感測器使用壽命至一百年", "減少監控頻率", "預警門檻扮演緩衝安全帶的角色，有助於防患於未然。"],
+                ["數位轉型", "在建置追溯系統資料庫時，下列何者屬於核心關聯鍵？", "批號（Lot/Batch Number）、產品/原料代碼與交易/流向紀錄", "員工最喜歡的飲料口味", "廠區盆栽數量", "停車場車位編號", "透過批號與品項代碼串聯上下游流向，才能迅速完成正逆向追溯。"],
+                ["食品法規與GHP", "食品作業場所地面排水系統設計，下列何者較為妥適？", "排水溝應有適當斜率保持暢通，並加設水封或格柵防止病媒侵入與逆流", "排水溝積水發臭也沒關係", "格柵縫隙越大越好，方便大老鼠進出", "排水溝可設於精密包裝機正下方且無蓋", "良好的排水與防病媒設計可避免積水、異味與病媒沿管線進入作業區。"],
+                ["HACCP與品保系統", "在 HACCP 計畫中，若某個步驟是控制危害的「唯一」機會，且若失控可能導致無法接受的食安危害，該步驟通常為？", "重要管制點（CCP）", "一般清潔區走道", "員工置物櫃", "文具採購流程", "符合關鍵控制位置且危害顯著的步驟，即應列為 CCP 嚴格監控。"],
+                ["追溯與標示", "包裝食品標示「過敏原」資訊時，若成分中含有花生醬，應如何標示？", "明確標示含有「花生」或其製品之醒語或相關標示", "可標示為「含堅果」即可，不必提及花生", "只需在成分表中用極小字體帶過", "不需標示任何過敏原資訊", "花生為法定強制標示之過敏原，應依規定清楚標示提醒過敏族群。"],
+                ["品保基礎與名詞", "「抽樣檢驗（Sampling Inspection）」之所以無法百分之百保證整批無不良品，主因為？", "僅檢驗母體中的一部分樣本，存在抽樣風險（生產者風險與消費者風險）", "檢驗人員視力不好", "抽樣工具太重", "檢驗時間太短", "抽樣檢驗是依據樣本推估整批品質，本質上存在統計抽樣誤差與風險。"],
+                ["食安文化與事件", "食品工廠面對消費者反映異物時，最妥適的處理態度是？", "重視並禮貌受理、妥善保存異物與同批樣品、追查製程原因並誠懇回覆", "指責消費者故意放異物敲詐", "直接將異物丟棄且不留任何紀錄", "不予理會封鎖帳號", "妥善保存證據、追查根本原因並建立有效溝通，有助於釐清責任與維護商譽。"],
+                ["數位轉型", "食品品保導入數位化管理後，對於「稽核查驗」最大的助益之一是？", "可快速調閱歷史監控數據、矯正紀錄與追溯鏈，縮短查核等待時間", "可讓稽核員不用到現場看任何東西", "可自動將所有缺失改為符合", "可免除法規遵循義務", "數位化查詢能快速提供完整佐證資料，提升內部與外部稽核效率。"]
+            ];
+
+            const fsItems = [
+                ["食品微生物", "一般食品腐敗細菌生長所需的最低水分活性（Aw）大約為何？", "約 0.90 以上", "約 0.30 以下", "約 0.50 左右", "約 0.10 以下", "多數腐敗細菌需要較高水分活性（通常 Aw > 0.90），乾燥或高糖高鹽可降低 Aw 抑制微生物。"],
+                ["食品微生物", "黴菌（Molds）相較於一般細菌，對水分活性（Aw）的耐受度通常如何？", "黴菌可在較低水分活性（約 0.80 左右）下生長，耐旱性較一般細菌強", "黴菌只能在 Aw 0.99 以上的純水中生長", "黴菌完全無法在任何食品中生長", "黴菌比細菌更容易在 Aw 0.95 以下完全死亡", "黴菌與部分耐滲透壓酵母菌可在較低 Aw 環境生長，因此乾燥食品若包裝受潮仍可能發黴。"],
+                ["中毒菌管制", "肉毒桿菌（Clostridium botulinum）在食品中最令人擔憂的危害特性為何？", "產生極強的神經毒素，且其芽孢耐熱性高，在低酸性厌氧環境易增殖產毒", "只會造成輕微腹瀉且完全無毒素", "為好氧菌，只要抽真空即可殺滅其芽孢", "毒素在 50°C 加熱 5 秒即可完全破壞", "肉毒桿菌毒素具高致死率，低酸性密封食品（pH > 4.6）須嚴格控制殺菌與保存條件。"],
+                ["中毒菌管制", "金黃色葡萄球菌（Staphylococcus aureus）引起食物中毒的主要原因為何？", "在食品中大量繁殖並產生耐熱性腸毒素，即使菌體被殺死，腸毒素仍可能致病", "必須在腸道內停留 10 天才會釋放毒素", "僅存在於生鮮蔬果表皮，與手部無關", "在 0°C 以下會快速產生大量腸毒素", "金黃色葡萄球菌腸毒素耐熱性強，預防重點在於避免人員污染與控制溫度抑制菌體繁殖產毒。"],
+                ["中毒菌管制", "腸炎弧菌（Vibrio parahaemolyticus）最常與哪類食品中毒相關？", "生鮮水產與海鮮類食品（具嗜鹽性，在適當鹽分與溫暖環境繁殖極快）", "乾燥穀類與餅乾", "精製白砂糖與蜂蜜", "高酸度檸檬汁", "腸炎弧菌常見於海產魚貝類，防治上應注意低溫保存、生熟食分開及充分加熱。"],
+                ["中毒菌管制", "沙門氏菌（Salmonella spp.）常見的污染來源與防治重點為何？", "常見於禽肉、蛋品及未充分加熱之畜產品，充分加熱與防止生熟食交叉污染可有效防治", "僅存在於南極冰層中", "芽孢可在 130°C 煮沸 1 小時後仍存活", "只會感染植物，不會引起人類腸胃炎", "沙門氏菌為常見食源性病原菌，禽蛋與肉類應澈底煮熟並避免交叉污染。"],
+                ["中毒菌管制", "仙人掌桿菌（Bacillus cereus）常與哪兩種類型的食物中毒有關？", "嘔吐型（常與米飯、澱粉類食物有關）與腹瀉型", "溶血型與神經麻痺型", "肝炎型與腎衰竭型", "皮膚紅疹型與關節炎型", "仙人掌桿菌可產生嘔吐毒素與腹瀉毒素，煮熟米飯若長時間置於室溫易增加風險。"],
+                ["中毒菌管制", "單核球增多性李斯特菌（Listeria monocytogenes）在低溫儲存上的特殊之處為何？", "具有耐冷性，即使在冷藏溫度（如 4°C）下仍可能緩慢生長", "在 4°C 下會立即死亡", "只能在 80°C 以上才能繁殖", "完全不會透過即食食品傳播", "李斯特菌可在冷藏環境生長，對孕婦、新生兒及免疫力低下者風險較高。"],
+                ["中毒菌管制", "預防病原菌交叉污染時，「生食」與「熟食」之刀具、砧板應如何管理？", "嚴格分開使用並清楚區隔標示，避免生食汁液污染熟食", "共用同一把刀與同一塊砧板最有效率", "用乾布擦拭後即可直接切熟食", "熟食砧板可放在生肉堆疊處下方", "生熟食分開是防止病原菌由生轉熟最基本且關鍵的衛生原則。"],
+                ["食品化學", "油脂發生「自動氧化（Autoxidation）」時，下列哪種油脂通常較易氧化酸敗？", "富含多元不飽和脂肪酸之植物油（雙鍵較多，自由基較易形成與傳遞）", "完全不含任何脂肪酸的純水", "飽和度極高且無雙鍵之油脂", "完全隔絕光、熱與氧氣之油脂", "不飽和脂肪酸雙鍵愈多，氧化反應速率愈快，易產生油耗味與過氧化物。"],
+                ["食品化學", "食品中添加抗氧化劑（如生育酚、BHA、BHT）的主要功能為何？", "捕捉自由基或中斷氧化連鎖反應，延緩油脂氧化酸敗", "將油脂轉化為碳水化合物", "殺滅所有罐頭內的肉毒桿菌芽孢", "提高食品水分活性", "抗氧化劑可延緩油脂氧化變質，延長含油食品之貨架期。"],
+                ["食品化學", "梅納反應（Maillard Reaction）發生所需的主要反應物為何？", "還原糖（如葡萄糖、果糖）與含有游離胺基之化合物（如胺基酸、胜肽、蛋白質）", "僅需純水與食鹽即可發生", "僅需纖維素與澱粉即可發生", "僅在 -40°C 冷凍下發生", "梅納反應是還原糖羰基與胺基化合物間的非酵素褐變反應，能生成特殊風味與褐色素。"],
+                ["食品化學", "切開的蘋果或馬鈴薯放置空氣中容易褐變，主要與哪種酵素作用有關？", "多酚氧化酶（Polyphenol Oxidase, PPO）", "澱粉酶（Amylase）", "脂肪酶（Lipase）", "蛋白酶（Protease）", "蔬果切傷後接觸氧氣，多酚氧化酶催化酚類氧化聚合形成褐色素，可藉 blanching 或抗氧化劑抑制。"],
+                ["食品化學", "澱粉在加熱糊化後冷卻存放，分子重新排列並析出水分的現象稱為？", "澱粉老化（Retrogradation）", "澱粉皂化（Saponification）", "澱粉焦糖化（Caramelization）", "澱粉酯化（Esterification）", "糊化澱粉冷卻後直鏈澱粉等分子重排結晶、持水力下降稱為老化，米飯與麵包放冷變硬與此有關。"],
+                ["食品化學", "下列何者屬於「還原糖」？", "葡萄糖、果糖、乳糖、麥芽糖", "蔗糖、纖維素", "直鏈澱粉、支鏈澱粉", "果膠、洋菜", "具有游離醛基或酮基（或半縮醛/半縮酮結構可開環）之糖類具有還原性，葡萄糖與乳糖皆屬還原糖。"],
+                ["食品化學", "食品中水分可分為「自由水」與「結合水」，微生物主要利用哪一種水？", "自由水（Free water），其可作為微生物生長與化學反應之溶劑與介質", "結合水（Bound water）", "結晶水", "完全凍結之冰晶", "結合水與非水成分緊密結合，不易被微生物利用；自由水則與水分活性（Aw）密切相關。"],
+                ["食品化學", "蛋白質變性（Denaturation）通常會伴隨下列何種變化？", "空間結構（二級、三級、四級結構）改變，溶解度可能下降，消化率或質地隨之改變", "一級結構之胜肽鍵大量斷裂為單一胺基酸", "分子量增加十倍", "完全失去所有營養價值", "加熱、酸鹼或機械作用可使蛋白質構象改變（變性），但不等同於胜肽鍵水解斷裂。"],
+                ["食品化學", "下列何者為脂溶性維生素？", "維生素 A、D、E、K", "維生素 B1、B2、B6、B12", "維生素 C", "菸鹼酸、泛酸", "脂溶性維生素包括維生素 A、D、E、K，易溶於油脂並可隨脂肪吸收與蓄積。"],
+                ["檢驗與分析", "凱氏定氮法（Kjeldahl Method）測定食品粗蛋白質時，一般食品常用的氮換算係數為？", "6.25", "1.00", "12.50", "25.00", "多數一般食品蛋白質含氮量約 16%，故總氮量乘以 100/16 = 6.25 估算粗蛋白質含量。"],
+                ["檢驗與分析", "食品中「大腸桿菌群（Coliforms）」檢驗在衛生管理上的主要意義為何？", "作為評估環境衛生、製程殺菌是否充分或是否有製程後污染之指標", "代表食品中一定含有霍亂弧菌", "用於測定食品中的維生素 C 含量", "僅用於檢測油脂酸價", "大腸桿菌群耐熱性低，若即食加工食品檢出，常提示加熱不足或後續遭受污染。"],
+                ["檢驗與分析", "常壓烘箱乾燥法測定食品水分含量時，樣品烘乾至「恆重」的意義為何？", "連續兩次烘乾冷卻秤重之質量差在規定容許範圍內，表示水分已充分蒸發", "烘烤至樣品完全焦黑發碳為止", "只要烘烤滿 10 分鐘即可停止", "樣品重量比原本增加一倍", "恆重條件可確保水分去除達平衡，避免烘烤不足造成水分低估或過度加熱導致分解。"],
+                ["檢驗與分析", "索氏萃取法（Soxhlet Extraction）常用於測定食品中的哪一項成分？", "粗脂肪（Crude Fat）", "膳食纖維", "水分活性", "灰分", "索氏萃取法利用有機溶劑連續回流萃取樣品中之脂溶性成分，常用於粗脂肪分析。"],
+                ["檢驗與分析", "食品灰分（Ash）測定主要是將樣品高溫灰化後，量測殘留之何種物質？", "無機物（礦物質）殘留量", "維生素 B 群總量", "游離脂肪酸含量", "活菌數", "樣品經高溫灼燒使有機物氧化揮發後，殘留之無機鹽類即為粗灰分。"],
+                ["檢驗與分析", "酸價（Acid Value, AV）主要用於評估油脂的哪一項品質特性？", "油脂中游離脂肪酸（FFA）之含量，反映油脂水解酸敗程度", "油脂的甜度高低", "油脂的黏度係數", "油脂的色澤深淺", "油脂水解會產生游離脂肪酸，酸價升高通常表示油脂發生水解劣變。"],
+                ["檢驗與分析", "過氧化價（Peroxide Value, POV）主要用於偵測油脂氧化的哪個階段？", "氧化初期所產生之過氧化物（Hydroperoxides）含量", "油脂完全碳化階段", "澱粉糊化階段", "蛋白質凝固階段", "過氧化價反映油脂初期氧化生成的過氧化物量，但氧化後期過氧化物分解時 POV 可能下降。"],
+                ["檢驗與分析", "微生物平板計數時，若某稀釋倍數之菌落數落在適當計數範圍（如 30~300 CFU），其目的為何？", "提高計數統計準確度，避免菌落過多重疊難算或過少誤差過大", "讓培養基顏色變紅", "縮短培養時間至 1 分鐘", "免除無菌操作", "適當菌落數範圍可降低重疊與取樣誤差，使菌落數推算更具代表性。"],
+                ["檢驗與分析", "進行微生物檢驗前，樣品均質與稀釋過程中最重要的是？", "維持無菌操作防止外來菌污染，並使微生物均勻分散於稀釋液中", "使用未滅菌的自來水稀釋", "將樣品放在室溫曝曬 24 小時", "故意用手觸摸培養基表面", "無菌技術與均勻分散是微生物定量檢驗準確性的基礎。"],
+                ["加工與保存", "「巴斯德殺菌（Pasteurization）」與「商業滅菌（Commercial Sterilization）」之主要差異為何？", "巴斯德殺菌殺滅致病菌與多數腐敗菌但保留部分耐熱菌，需冷藏；商業滅菌可使低酸密封食品在常溫長期保存", "兩者溫度與時間完全相同", "巴斯德殺菌只能用於冷凍食品", "商業滅菌後產品必須放在 -80°C 保存", "巴斯德殺菌著重安全與延長冷藏期並保留風味；商業滅菌則針對常溫流通產品控制芽孢風險。"],
+                ["加工與保存", "超高溫瞬時殺菌（UHT）相較於傳統長時間低溫加熱，在品質保存上有何優勢？", "高溫短時可有效殺滅微生物，同時較能減少熱敏感營養成分與風味之過度破壞", "殺菌溫度只需 40°C 即可", "殺菌時間需長達 12 小時", "會讓牛奶變成固體塊狀", "利用高溫短時特性，在達成殺菌目標的同時相對保留較佳的色香味與營養。"],
+                ["加工與保存", "冷凍乾燥（Freeze Drying / Lyophilization）之乾燥原理為何？", "先將食品凍結，再於高真空下使冰晶直接由固態昇華為氣態去除水分", "在 200°C 熱風下直接烤乾", "用大量食鹽醃漬脫水", "浸泡於酒精中脫水", "冷凍乾燥因在低溫與昇華條件下脫水，能較好保留多孔結構、形狀與熱敏性成分。"],
+                ["加工與保存", "罐頭食品在殺菌冷卻階段，若冷卻水不潔且罐縫有微小瑕疵，可能發生何種現象？", "冷卻水中的微生物隨負壓吸入罐內，造成「冷卻水污染（Cooling Water Contamination）」", "罐頭會自動變成玻璃罐", "罐內真空度變為零且完全無害", "罐身會自動產生標籤", "殺菌後罐頭內部溫度下降產生負壓，若冷卻水衛生不佳且封罐有缺陷，易發生吸入性污染。"],
+                ["加工與保存", "真空包裝（Vacuum Packaging）主要透過移除包裝內空氣來達到何種效果？", "抑制好氧性腐敗菌與黴菌生長，並減緩需氧氧化反應", "殺滅所有厭氧性肉毒桿菌芽孢", "使食品水分活性降為 0.1", "完全取代低溫冷藏", "真空包裝可減少氧氣，但對厭氧菌或兼性厭氧菌仍需配合低溫、低 Aw 或其他柵欄因子控制。"],
+                ["加工與保存", "氣調包裝（Modified Atmosphere Packaging, MAP）常透過調整何種氣體組成來延長保鮮期？", "依食品特性調配二氧化碳（CO2）、氮氣（N2）與氧氣（O2）比例，抑制微生物與呼吸或氧化作用", "充入 100% 氯氣進行殺菌", "充入一氧化碳作為防腐劑", "完全不封口", "MAP 透過氣體組成控制延緩劣變，不同生鮮或加工食品所需氣體比例不同。"],
+                ["加工與保存", "熱燙（Blanching）在蔬果加工中的主要作用不包括下列何者？", "永久提升生鮮蔬菜的水分活性至 1.5 以上", "鈍化酵素活性以防止褐變與異味產生", "排除組織內氣體並減少後續殺菌負荷", "降低表面附著之部分微生物數", "熱燙常用於蔬果加工前處理，可抑制酵素、排除氣體與降低初始菌量，但過度熱燙也會造成營養流失。"],
+                ["加工與保存", "利用添加高濃度食鹽或糖分來保存食品，其主要抑菌機制為何？", "降低食品之水分活性（Aw）與產生高滲透壓，抑制微生物生長繁殖", "直接將食鹽分子鑽入細菌細胞核", "使食品 pH 值升至 14", "將蛋白質完全轉化為脂肪", "高糖、高鹽能束縛自由水、降低 Aw，使多數細菌因水分不足而無法生長。"],
+                ["加工與保存", "「柵欄技術（Hurdle Technology）」在食品保存中之核心概念為何？", "結合多種輕度抑菌因子（如溫度、Aw、pH、防腐劑、包裝等）協同作用，以較溫和條件達成安全與品質兼顧", "只依賴單一極端高溫處理", "完全不使用任何保存方法", "讓所有微生物自由繁殖", "多重輕度柵欄協同作用，可在維持食安的前提下減少單一強烈處理對食品品質的損害。"],
+                ["加工與保存", "快速冷凍（Quick Freezing）相較於緩慢冷凍，對食品組織品質有何好處？", "形成較細小且均勻的冰晶，減少對細胞壁或組織結構的破壞，解凍時汁液流失較少", "形成的冰晶體積特別龐大", "解凍時會大量流失汁液", "冷凍速度越慢越好", "快速通過最大冰晶生成帶（約 -1°C 至 -5°C）可形成細小冰晶，有助維持組織完整性。"],
+                ["加工與保存", "食品脫水乾燥過程中，若表面水分蒸發過快而內部水分擴散不及，可能導致何種現象？", "表面硬化（Case Hardening），阻礙內部水分繼續向外擴散", "產品自動變成液態", "糖分全部結晶析出成冰塊", "營養成分完全不會流失", "乾燥初期溫度過高或空氣流速過快易使表層結殼硬化，影響後續乾燥效率。"],
+                ["加工與保存", "酸性食品與低酸性食品在食品加工與殺菌分類上，通常以何者作為重要分界？", "pH 值 4.6（肉毒桿菌在 pH 4.6 以下通常難以生長產毒）", "pH 值 9.0", "水分活性 0.20", "脂肪含量 50%", "pH 4.6 是罐頭與酸性食品殺菌規範的重要分界點，低於 4.6 酸性環境較能抑制肉毒桿菌生長。"],
+                ["加工與保存", "殺菌強度計算中常用的「D 值（Decimal Reduction Time）」代表什麼意義？", "在特定溫度下，使特定微生物數量減少 90%（即降至原本 1/10）所需的時間", "殺滅所有微生物所需的總年數", "食品保存期限的天數", "冷卻水流量", "D 值越小表示微生物對該溫度的耐熱性越低，是評估熱殺菌效果的重要參數。"],
+                ["加工與保存", "「Z 值（Z-value）」在熱殺菌動力學中的定義為何？", "使微生物之 D 值改變 10 倍（一個對數週期）所需升溫或降溫的攝氏度數", "食品中的水分含量百分比", "包裝袋的厚度", "冷藏庫的相對濕度", "Z 值反映微生物耐熱性隨溫度變化的敏感程度。"],
+                ["食品微生物", "酵母菌（Yeasts）在發酵食品（如麵包、釀造）中主要扮演何種角色？", "進行發酵作用產生二氧化碳與酒精等代謝產物，賦予產品膨發或特殊風味", "僅會造成食品腐敗且無任何正面應用", "為革蘭氏陰性產孢桿菌", "只能在 -50°C 下生長", "酵母菌廣泛應用於烘焙與發酵釀造，但若出現在不該出現的產品中也可能造成膨罐或變質。"],
+                ["食品微生物", "細菌芽孢（Endospore）相較於營養細胞（Vegetative Cell），對環境逆境的抵抗力如何？", "芽孢具有多層厚壁與低含水量等構造，對高熱、乾燥、輻射與化學消毒劑之抵抗力遠強於營養細胞", "芽孢比營養細胞更容易被溫水殺死", "芽孢只在 0°C 下才具有抵抗力", "兩者抵抗力完全相同", "芽孢是微生物的休眠抗逆構造，因此滅菌製程必須考量芽孢耐熱性。"],
+                ["食品微生物", "下列何者屬於「兼性厭氧菌（Facultative Anaerobes）」？", "在有氧與無氧環境下皆可生長的微生物（如多數腸內菌科細菌）", "只能在完全無氧環境生長且遇氧即死的菌", "只能在純氧環境生長且無氧即死的菌", "只能生長在濃硫酸中的菌", "兼性厭氧菌具適應彈性，真空或氣調包裝時仍需搭配其他控制條件。"],
+                ["食品微生物", "影響食品中微生物生長的「內在因子（Intrinsic Factors）」包含下列何者？", "pH 值、水分活性（Aw）、氧化還原電位、營養成分與天然抗菌物質", "儲存庫環境溫度、相對濕度與氣體組成", "運輸車輛行駛速度", "包裝箱印刷顏色", "內在因子是指食品本身固有的理化與成分特性；外在因子則指儲存與環境條件。"],
+                ["食品微生物", "影響食品中微生物生長的「外在因子（Extrinsic Factors）」包含下列何者？", "儲存溫度、環境相對濕度及包裝周圍氣體組成", "食品本身的 pH 值與水分活性", "原料本身的天然抑菌成分", "食品中的蛋白質結構", "控制儲存溫度、濕度與包裝氣體是外在環境調控的重要手段。"],
+                ["食品微生物", "乳酸菌（Lactic Acid Bacteria）在發酵乳或泡菜製作中，主要透過產酸降低環境 pH 值，其作用為何？", "抑制許多腐敗菌與病原菌生長，並賦予產品酸香風味與質地變化", "使產品 pH 值升至 11 以上", "產生大量甲烷氣體", "讓產品完全失去水分", "乳酸菌發酵產酸可形成酸性屏障，兼具保藏與風味形成功能。"],
+                ["中毒菌管制", "預防食物中毒的「五要原則」中，不包含下列哪一項？", "要趁熱放進冰箱冷凍庫結冰", "要洗手", "要新鮮", "要生熟食分開", "食安五要原則為：要洗手、要新鮮、要生熟食分開、要注意保存溫度、要澈底加熱。"],
+                ["中毒菌管制", "食品加熱烹調時，中心溫度達 70°C 以上並維持一段時間，主要目的為何？", "有效殺滅多數 vegetative 病原菌，提升熟食食用安全性", "讓食物外觀變成綠色", "增加食物中的水分活性", "讓塑膠包裝融化", "充分加熱使中心溫度達到安全標準，是降低食源性病原菌風險的關鍵步驟。"],
+                ["中毒菌管制", "下列哪種食品若未妥善冷藏，容易因微生物繁殖或毒素累積而導致食安風險？", "熟食便當、生鮮水產、鮮奶與沙拉等高水分低酸或易腐敗食品", "完全乾燥之白米與乾香菇", "精製食鹽與白砂糖", "未開封且符合商業滅菌之罐頭", "高水分、營養豐富且接近中性 pH 的食品最適合微生物生長，需嚴格控管溫度與時效。"],
+                ["食品化學", "食品中「焦糖化反應（Caramelization）」與「梅納反應」最大的差異在於？", "焦糖化是糖類在無胺基化合物參與下受高溫裂解褐變；梅納反應需有還原糖與胺基化合物參與", "焦糖化必須在 4°C 冷藏下進行", "梅納反應不需要任何糖類", "兩者完全是同一種化學反應", "焦糖化涉及糖分子脫水、裂解與聚合，通常發生在較高溫度下。"],
+                ["食品化學", "乳化劑（Emulsifier）在美乃滋或冰淇淋等油水混合食品中的主要功能為何？", "降低油水介面張力，使原本互不相溶的油相與水相形成穩定分散之乳濁液", "將水變成固體冰塊", "完全去除油脂成分", "增加食品酸度至 pH 1.0", "乳化劑具有親水基與親油基，可促進油水均勻分散並維持系統安定。"],
+                ["食品化學", "膳食纖維（Dietary Fiber）在食品加工與營養上的特性為何？", "不易被人體小腸消化酵素分解，具有促進腸道蠕動、保水性或調整質地等功能", "可提供每公克 9 大卡熱量", "屬於單醣類的一種", "會使食品完全無法吸水", "膳食纖維可增加飽足感與促進排便，在烘焙與穀物製品中亦常作為機能性成分。"],
+                ["檢驗與分析", "進行食品感官品評（Sensory Evaluation）時，品評室環境應儘量避免下列何種干擾？", "強烈異味、噪音、刺眼或不均勻照明，以及品評員間相互交談干擾", "提供舒適安靜與光線適中的品評環境", "確保樣品編號隨機且溫度一致", "提供漱口水清潔味蕾", "外界氣味、聲光或同儕意見會干擾感官判斷客觀性，應嚴格控制品評環境。"],
+                ["檢驗與分析", "測定液體食品之可溶性固形物（常以 °Brix 表示，如果汁、糖漿）時，常用哪種儀器？", "折射計（Refractometer）", "離心機", "烘箱", "培養箱", "折射計透過量測液體折射率推估可溶性固形物含量（°Brix），操作快速方便。"],
+                ["檢驗與分析", "微生物檢驗中，使用「革蘭氏染色法（Gram Stain）」可將細菌區分為革蘭氏陽性與陰性，主要與何種構造差異有關？", "細胞壁結構與胜肽聚醣（Peptidoglycan）層厚度等差異", "細胞核數量", "鞭毛顏色", "菌落大小", "革蘭氏陽性菌具有較厚之胜肽聚醣層，染色後呈紫色；革蘭氏陰性菌則呈紅色。"],
+                ["加工與保存", "高壓加工（High Pressure Processing, HPP）在食品保存上的特色為何？", "利用超高靜水壓殺滅 vegetative 微生物與部分酵素，同時較能保留生鮮色澤、風味與營養", "需要將食品加熱至 300°C", "會壓碎所有水果果肉變成泥", "僅適用於乾燥餅乾", "HPP 屬於非熱加工技術，壓力均勻傳遞，可在低溫或常溫下降低菌量並維持新鮮感。"],
+                ["加工與保存", "輻射照射（Food Irradiation）應用於食品殺菌或抑制發芽時，下列敘述何者正確？", "應依核准之照射劑量與食品類別嚴格執行，且包裝須標示相關照射資訊", "照射後食品會具有放射性並發光", "任何食品皆可隨意照射任意劑量而不需標示", "可取代所有衛生管理制度", "食品照射利用游離輻射破壞微生物 DNA 或抑制馬鈴薯、蒜頭發芽，須符合法規與標示規定。"],
+                ["加工與保存", "乾燥食品包裝若選用「阻氣性與防潮性佳」之複合包材，主要目的為何？", "阻絕外界水氣回滲使 Aw 上升，並減少氧氣進入導致氧化或吸濕結塊", "讓水氣自由進出包裝", "讓包裝袋容易被老鼠咬破", "增加包裝重量", "乾燥食品最怕吸潮回軟或長黴，良好的防潮與阻氧性可維持乾燥狀態與品質。"],
+                ["食品微生物", "食品中若出現「膨罐（Swell）」現象，可能原因為何？", "罐內產氣微生物繁殖產氣，或化學反應產生氫氣（如酸性食品與罐壁金屬作用）", "代表罐頭品質極佳且可安心食用", "僅因罐頭標籤貼歪所導致", "代表罐內真空度極高", "膨罐是罐頭重要異常徵兆，可能涉及微生物腐敗產氣或產毒風險，應立即隔離判定。"],
+                ["中毒菌管制", "預防海洋弧菌或腸炎弧菌引起食品中毒，處理生鮮海鮮時應特別注意？", "低溫保存、避免以自來水隨意清洗後久放，並嚴格分開生熟食器具", "將生魚片放在室溫下退冰 6 小時", "用沾過生魚汁液的抹布擦拭熟食盤", "不需洗手即可直接抓食", "水產加工與調理應維持低溫與清潔，防止病原菌快速繁殖與交叉污染。"],
+                ["食品化學", "食品中若發生「酵素性褐變」，可透過下列何種方式減緩？", "熱燙破壞酵素活性、添加抗壞血酸（維生素 C）還原或隔絕氧氣", "提高環境溫度至酵素最適活性溫度並通入大量氧氣", "增加酚類受質含量", "延長切開後暴露空氣時間", "酵素性褐變需要酵素、酚類受質與氧氣三者同時存在，移除任一條件可減緩褐變。"],
+                ["檢驗與分析", "實驗室進行化學或微生物檢驗時，使用「空白試驗（Blank Test）」的主要目的為何？", "偵測試劑、溶劑或操作過程可能引入的背景干擾或污染，以校正結果", "測試檢驗員的打字速度", "節省藥品用量", "取代所有標準品", "空白試驗有助於確認背景值是否正常，確保檢驗數據準確可信。"],
+                ["加工與保存", "煙燻（Smoking）在傳統肉品與魚製品加工中，除了賦予煙燻風味外，還具有何種作用？", "煙燻成分中的酚類、醛類與有機酸等物質具有一定抑菌與抗氧化效果，並配合乾燥降低 Aw", "可使肉品完全不含任何蛋白質", "可讓肉品在室溫下保存一百年不壞", "僅為染黑肉品外觀", "煙燻結合加熱與乾燥，能增添風味並輔助抑制微生物與氧化。"],
+                ["加工與保存", "發酵食品（如優格、味噌、醬油、泡菜）在製程中，微生物管理最關鍵的重點是？", "確保優良發酵菌株占優勢並順利產酸或發酵，同時抑制雜菌與病原菌生長", "讓所有環境雜菌自由大量繁殖", "發酵過程中完全不控制溫度與衛生", "發酵完成後不需任何保存或標示管理", "透過菌種管理、原料衛生與製程條件控制，可引導良性發酵並降低雜菌污染風險。"]
+            ];
+
+            const qaBank = qaItems.map((item, idx) => ({
+                id: `Q_${idx + 1}`,
+                topic: item[0],
+                q: item[1],
+                options: [item[2], item[3], item[4], item[5]],
+                answer: 0,
+                explanation: item[6]
+            }));
+
+            const fsBank = fsItems.map((item, idx) => ({
+                id: `S_${idx + 1}`,
+                topic: item[0],
+                q: item[1],
+                options: [item[2], item[3], item[4], item[5]],
+                answer: 0,
+                explanation: item[6]
+            }));
+
+            return {
+                "食品品保概論": qaBank,
+                "食品科學概論": fsBank
+            };
+        }
+
+        const questionBank = generateUniqueQuestionBank();
+
+        class IPASApp {
+            constructor() {
+                this.currentTab = 'home';
+                this.examMode = 'practice';
+                this.officialStage = 1;
+                this.officialScores = {};
+                this.currentExamSubject = '食品品保概論';
+                this.examQuestions = [];
+                this.currentQuestionIndex = 0;
+                this.userAnswers = {};
+                this.examTimerInterval = null;
+                this.timeLeft = 5400;
+                this.radarChartInstance = null;
+
+                this.cloudService = null;
+                this.currentUser = null;
+                this.authResolved = false;
+                this.promptedUnauthOnce = false;
+                this.wrongBookLoaded = false;
+                this.isResetting = false;
+                this.fetchSeq = 0;
+
+                this.initFallbackTimer = setTimeout(() => {
+                    if (!this.authResolved && !this.isResetting) {
+                        this.handleAuthChecked(null);
+                    }
+                }, 4000);
+            }
+
+            attachCloudService(service) {
+                this.cloudService = service;
+            }
+
+            handleAuthChecked(user) {
+                if (this.initFallbackTimer) {
+                    clearTimeout(this.initFallbackTimer);
+                    this.initFallbackTimer = null;
+                }
+
+                if (this.isResetting) {
+                    this.currentUser = user;
+                    this.updateAuthUI(user);
+                    this.clearStatusTexts();
+                    return;
+                }
+
+                const wasResolved = this.authResolved;
+                this.authResolved = true;
+                this.currentUser = user;
+                this.updateAuthUI(user);
+
+                if (user) {
+                    this.hideAuthModalOnly();
+                    this.fetchWrongBookData();
+                } else {
+                    if (!wasResolved && !this.promptedUnauthOnce) {
+                        this.promptedUnauthOnce = true;
+                        this.clearStatusTexts();
+                        this.showAuthModalOnly();
+                    } else if (!this.wrongBookLoaded) {
+                        this.fetchWrongBookData();
+                    }
+                }
+            }
+
+            updateAuthUI(user) {
+                const dot = document.getElementById('cloud-dot');
+                const emailText = document.getElementById('user-email-text');
+                const authBtn = document.getElementById('auth-btn');
+                const loggedOutPanel = document.getElementById('auth-logged-out-panel');
+                const loggedInPanel = document.getElementById('auth-logged-in-panel');
+                const modalEmail = document.getElementById('auth-modal-user-email');
+
+                const banner = document.getElementById('cloud-status-banner');
+                const bannerIcon = document.getElementById('cloud-banner-icon');
+                const bannerTitle = document.getElementById('cloud-banner-title');
+                const bannerDesc = document.getElementById('cloud-banner-desc');
+                const bannerBadge = document.getElementById('cloud-banner-badge');
+
+                if (user) {
+                    if (dot) dot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
+                    if (emailText) emailText.textContent = user.email || "已連線雲端";
+                    if (authBtn) authBtn.textContent = "☁️ 雲端帳號";
+                    if (loggedOutPanel) loggedOutPanel.classList.add('hidden');
+                    if (loggedInPanel) loggedInPanel.classList.remove('hidden');
+                    if (modalEmail) modalEmail.textContent = user.email || "Google 帳號";
+
+                    if (banner) banner.className = "bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between transition-colors";
+                    if (bannerIcon) bannerIcon.textContent = "☁️";
+                    if (bannerTitle) {
+                        bannerTitle.textContent = `已連線雲端帳號（${user.email}）`;
+                        bannerTitle.className = "font-bold text-emerald-800 text-sm";
+                    }
+                    if (bannerDesc) {
+                        bannerDesc.textContent = this.isResetting ? "已停止抓取並清空錯題與歷次考試資料。" : "錯題與歷次考試資料已同步。";
+                        bannerDesc.className = "text-xs text-emerald-700";
+                    }
+                    if (bannerBadge) {
+                        bannerBadge.textContent = "Cloud Active";
+                        bannerBadge.className = "bg-emerald-200 text-emerald-800 text-xs font-bold px-2.5 py-1 rounded-full";
+                    }
+                } else {
+                    if (dot) dot.className = "w-2 h-2 rounded-full bg-slate-400";
+                    if (emailText) emailText.textContent = "未登入";
+                    if (authBtn) authBtn.textContent = "☁️ 雲端登入";
+                    if (loggedOutPanel) loggedOutPanel.classList.remove('hidden');
+                    if (loggedInPanel) loggedInPanel.classList.add('hidden');
+
+                    if (banner) banner.className = "bg-slate-100 border border-slate-200 rounded-xl p-4 flex items-center justify-between transition-colors";
+                    if (bannerIcon) bannerIcon.textContent = "💻";
+                    if (bannerTitle) {
+                        bannerTitle.textContent = "本機模式";
+                        bannerTitle.className = "font-bold text-slate-800 text-sm";
+                    }
+                    if (bannerDesc) {
+                        bannerDesc.textContent = this.isResetting ? "已停止抓取並清空錯題與歷次考試資料。" : "可隨時點擊右上角「雲端登入」進行帳號同步。";
+                        bannerDesc.className = "text-xs text-slate-600";
+                    }
+                    if (bannerBadge) {
+                        bannerBadge.textContent = "Local Mode";
+                        bannerBadge.className = "bg-slate-200 text-slate-700 text-xs font-bold px-2.5 py-1 rounded-full";
+                    }
+                }
+            }
+
+            showAuthModalOnly() {
+                const modal = document.getElementById('auth-modal');
+                if (modal) modal.classList.remove('hidden');
+            }
+
+            hideAuthModalOnly() {
+                const modal = document.getElementById('auth-modal');
+                if (modal) modal.classList.add('hidden');
+            }
+
+            openAuthModal() {
+                this.showAuthModalOnly();
+            }
+
+            closeAuthModal() {
+                this.hideAuthModalOnly();
+                if (!this.isResetting) {
+                    this.fetchWrongBookData();
+                } else {
+                    this.applyClearedUI();
+                }
+            }
+
+            clearStatusTexts() {
+                const wrongCountEl = document.getElementById('home-wrong-count');
+                const historyCountEl = document.getElementById('home-history-count');
+                if (wrongCountEl) wrongCountEl.textContent = "";
+                if (historyCountEl) historyCountEl.textContent = "";
+            }
+
+            applyClearedUI() {
+                this.clearStatusTexts();
+                if (this.currentTab === 'wrong-book') this.renderWrongBook();
+                if (this.currentTab === 'history') this.renderHistoryTable();
+            }
+
+            async fetchWrongBookData() {
+                if (this.isResetting) {
+                    this.applyClearedUI();
+                    return;
+                }
+
+                const seq = ++this.fetchSeq;
+                const wrongCountEl = document.getElementById('home-wrong-count');
+                const historyCountEl = document.getElementById('home-history-count');
+
+                let wrongs = this.getLocalWrongBook();
+                let history = this.getLocalHistory();
+
+                if (this.currentUser && this.cloudService) {
+                    try {
+                        const merged = await this.cloudService.syncData(this.currentUser.uid, wrongs, history);
+                        if (this.isResetting || seq !== this.fetchSeq) return;
+                        if (merged) {
+                            wrongs = merged.wrongs;
+                            history = merged.history;
+                            localStorage.setItem('ipas_wrong_book_v15', JSON.stringify(wrongs));
+                            localStorage.setItem('ipas_history_v15', JSON.stringify(history));
+                        }
+                    } catch (err) {
+                        if (this.isResetting || seq !== this.fetchSeq) return;
+                        console.warn("雲端錯題抓取失敗，改用本機錯題:", err);
+                    }
+                }
+
+                if (this.isResetting || seq !== this.fetchSeq) return;
+
+                this.wrongBookLoaded = true;
+                if (wrongCountEl) wrongCountEl.textContent = wrongs.length > 0 ? `目前累積錯題：${wrongs.length} 題` : "";
+                if (historyCountEl) historyCountEl.textContent = history.length > 0 ? `已完成測驗：${history.length} 次` : "";
+
+                if (this.currentTab === 'wrong-book') this.renderWrongBook();
+                if (this.currentTab === 'history') this.renderHistoryTable();
+            }
+
+            async loginWithGoogle() {
+                if (!this.cloudService) {
+                    alert("雲端模組尚未就緒，將先使用本機錯題資料。");
+                    this.closeAuthModal();
+                    return;
+                }
+                const user = await this.cloudService.loginGoogle();
+                if (user) {
+                    this.handleAuthChecked(user);
+                }
+            }
+
+            async loginWithEmail() {
+                if (!this.cloudService) {
+                    alert("雲端模組尚未就緒，將先使用本機錯題資料。");
+                    this.closeAuthModal();
+                    return;
+                }
+                const email = document.getElementById('auth-email').value.trim();
+                const password = document.getElementById('auth-password').value.trim();
+                if (!email || !password) {
+                    alert("請輸入電子郵件與密碼");
+                    return;
+                }
+                const user = await this.cloudService.loginEmail(email, password);
+                if (user) {
+                    this.handleAuthChecked(user);
+                }
+            }
+
+            async logout() {
+                if (this.cloudService) {
+                    await this.cloudService.logout();
+                }
+                this.currentUser = null;
+                this.wrongBookLoaded = false;
+                this.updateAuthUI(null);
+                this.hideAuthModalOnly();
+                if (!this.isResetting) {
+                    this.fetchWrongBookData();
+                } else {
+                    this.applyClearedUI();
+                }
+            }
+
+            sanitizeInput(input) {
+                if (typeof input !== 'string') return input;
+                return input.replace(/[&<>'"]/g, 
+                    tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+                );
+            }
+
+            async factoryReset() {
+                this.isResetting = true;
+                this.fetchSeq++;
+                if (this.initFallbackTimer) {
+                    clearTimeout(this.initFallbackTimer);
+                    this.initFallbackTimer = null;
+                }
+
+                localStorage.removeItem('ipas_wrong_book_v15');
+                localStorage.removeItem('ipas_history_v15');
+                this.wrongBookLoaded = true;
+                this.applyClearedUI();
+                this.updateAuthUI(this.currentUser);
+
+                if (this.cloudService && this.currentUser) {
+                    try {
+                        await this.cloudService.overwriteCloud(this.currentUser.uid, [], []);
+                    } catch (e) {
+                        console.warn("清空雲端資料庫時發生錯誤:", e);
+                    }
+                }
+
+                alert("已停止抓取錯題與歷次考試資料，並完成資料庫清空！");
+                this.switchTab('home');
+            }
+
+            switchTab(tabId) {
+                this.currentTab = tabId;
+                const views = ['home', 'setup', 'official-setup', 'exam', 'result', 'wrong-book', 'history'];
+                views.forEach(v => {
+                    const el = document.getElementById(`view-${v}`);
+                    if (el) el.classList.add('hidden');
+                });
+                const targetEl = document.getElementById(`view-${tabId}`);
+                if (targetEl) targetEl.classList.remove('hidden');
+
+                if (tabId === 'home') {
+                    if (this.isResetting) this.applyClearedUI();
+                    else if (this.wrongBookLoaded) this.fetchWrongBookData();
+                    else this.clearStatusTexts();
+                }
+                if (tabId === 'wrong-book') this.renderWrongBook();
+                if (tabId === 'history') this.renderHistoryTable();
+            }
+
+            startPracticeSetup() {
+                this.examMode = 'practice';
+                this.switchTab('setup');
+            }
+
+            startPracticeExam() {
+                this.isResetting = false;
+                const radios = document.getElementsByName('practice-subject');
+                for (let r of radios) {
+                    if (r.checked) this.currentExamSubject = r.value;
+                }
+                this.initExamForSubject(this.currentExamSubject);
+            }
+
+            startOfficialExamSetup() {
+                this.examMode = 'official';
+                this.officialStage = 1;
+                this.officialScores = {};
+                this.switchTab('official-setup');
+            }
+
+            launchOfficialExam() {
+                this.isResetting = false;
+                this.officialStage = 1;
+                this.officialScores = {};
+                this.initExamForSubject('食品品保概論');
+            }
+
+            initExamForSubject(subjectName) {
+                this.currentExamSubject = subjectName;
+                const bank = questionBank[subjectName] || questionBank["食品品保概論"];
+
+                const uniquePool = [];
+                const seenIds = new Set();
+                const seenTexts = new Set();
+
+                for (const item of bank) {
+                    const cleanText = stripQuestionPrefix(item.q);
+                    if (!seenIds.has(item.id) && !seenTexts.has(cleanText)) {
+                        seenIds.add(item.id);
+                        seenTexts.add(cleanText);
+                        uniquePool.push({ ...item, q: cleanText });
+                    }
+                }
+
+                for (let i = uniquePool.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [uniquePool[i], uniquePool[j]] = [uniquePool[j], uniquePool[i]];
+                }
+
+                const picked = [];
+                const pickedIds = new Set();
+                const pickedTexts = new Set();
+
+                for (const q of uniquePool) {
+                    if (picked.length >= 66) break;
+                    if (pickedIds.has(q.id) || pickedTexts.has(q.q)) continue;
+                    pickedIds.add(q.id);
+                    pickedTexts.add(q.q);
+
+                    const indexedOptions = q.options.map((opt, idx) => ({
+                        text: opt,
+                        isCorrect: idx === q.answer
+                    }));
+                    for (let i = indexedOptions.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [indexedOptions[i], indexedOptions[j]] = [indexedOptions[j], indexedOptions[i]];
+                    }
+                    const newAnswerIdx = indexedOptions.findIndex(o => o.isCorrect);
+
+                    picked.push({
+                        ...q,
+                        options: indexedOptions.map(o => o.text),
+                        answer: newAnswerIdx
+                    });
+                }
+
+                this.examQuestions = picked;
+                this.currentQuestionIndex = 0;
+                this.userAnswers = {};
+                this.timeLeft = 5400;
+
+                this.switchTab('exam');
+                let modeText = this.examMode === 'official' ? (this.officialStage === 1 ? '【正式考試 • 科目一】' : '【正式考試 • 科目二】') : '【單科練習】';
+                const badgeEl = document.getElementById('exam-title-badge');
+                if (badgeEl) badgeEl.textContent = `${modeText} ${this.currentExamSubject} (固定 ${this.examQuestions.length} 題)`;
+                this.renderQuestion();
+                this.startTimer();
+            }
+
+            startTimer() {
+                if (this.examTimerInterval) clearInterval(this.examTimerInterval);
+                this.examTimerInterval = setInterval(() => {
+                    this.timeLeft--;
+                    const min = String(Math.floor(this.timeLeft / 60)).padStart(2, '0');
+                    const sec = String(this.timeLeft % 60).padStart(2, '0');
+                    const timerEl = document.getElementById('exam-timer');
+                    if (timerEl) timerEl.textContent = `${min}:${sec}`;
+                    if (this.timeLeft <= 0) {
+                        clearInterval(this.examTimerInterval);
+                        alert("考試時間到，系統將自動交卷！");
+                        this.submitExam();
+                    }
+                }, 1000);
+            }
+
+            renderQuestion() {
+                const q = this.examQuestions[this.currentQuestionIndex];
+                const total = this.examQuestions.length;
+                const progressEl = document.getElementById('exam-progress-text');
+                if (progressEl) progressEl.textContent = `第 ${this.currentQuestionIndex + 1} 題 / 共 ${total} 題`;
+
+                const container = document.getElementById('question-container');
+                if (!container) return;
+
+                let optionsHtml = '';
+                q.options.forEach((opt, idx) => {
+                    const checked = this.userAnswers[this.currentQuestionIndex] === idx ? 'checked' : '';
+                    optionsHtml += `
+                        <label class="block border border-slate-200 hover:border-indigo-500 rounded-xl p-4 cursor-pointer transition flex items-center space-x-3">
+                            <input type="radio" name="current-opt" value="${idx}" ${checked} onchange="app.selectOption(${idx})" class="w-4 h-4 text-indigo-600">
+                            <span class="text-slate-700">${this.sanitizeInput(opt)}</span>
+                        </label>
+                    `;
+                });
+
+                const cleanQ = stripQuestionPrefix(q.q);
+
+                container.innerHTML = `
+                    <div class="text-xs font-bold text-indigo-600 uppercase tracking-wider">核心分類：${this.sanitizeInput(q.topic)}</div>
+                    <div class="text-lg font-bold text-slate-800">${this.sanitizeInput(cleanQ)}</div>
+                    <div class="space-y-3 pt-2">${optionsHtml}</div>
+                `;
+
+                const prevBtn = document.getElementById('btn-prev');
+                if (prevBtn) prevBtn.style.display = this.currentQuestionIndex === 0 ? 'none' : 'block';
+                
+                const nextBtn = document.getElementById('btn-next');
+                if (nextBtn) {
+                    if (this.currentQuestionIndex === total - 1) {
+                        nextBtn.textContent = '交卷評分';
+                        nextBtn.className = 'bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl shadow transition text-sm cursor-pointer';
+                    } else {
+                        nextBtn.textContent = '下一題';
+                        nextBtn.className = 'bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2.5 rounded-xl shadow transition text-sm cursor-pointer';
+                    }
+                }
+            }
+
+            selectOption(idx) {
+                this.userAnswers[this.currentQuestionIndex] = idx;
+            }
+
+            prevQuestion() {
+                if (this.currentQuestionIndex > 0) {
+                    this.currentQuestionIndex--;
+                    this.renderQuestion();
+                }
+            }
+
+            nextQuestion() {
+                if (this.currentQuestionIndex < this.examQuestions.length - 1) {
+                    this.currentQuestionIndex++;
+                    this.renderQuestion();
+                } else {
+                    this.submitExam();
+                }
+            }
+
+            submitExam() {
+                if (this.examTimerInterval) clearInterval(this.examTimerInterval);
+
+                let correctCount = 0;
+                let wrongItems = [];
+                let detailedAnswers = [];
+
+                this.examQuestions.forEach((q, idx) => {
+                    const cleanQ = stripQuestionPrefix(q.q);
+                    const userAns = this.userAnswers[idx];
+                    const isCorrect = userAns === q.answer;
+                    if (isCorrect) correctCount++;
+                    else {
+                        wrongItems.push({ 
+                            ...q,
+                            q: cleanQ,
+                            userAns: userAns !== undefined ? userAns : -1, 
+                            explanation: q.explanation || "暫無解析" 
+                        });
+                    }
+                    detailedAnswers.push({ 
+                        ...q,
+                        q: cleanQ,
+                        userAns: userAns !== undefined ? userAns : -1, 
+                        isCorrect 
+                    });
+                });
+
+                const total = this.examQuestions.length;
+                const score = Math.round((correctCount / total) * 100);
+
+                const payload = {
+                    id: "EXAM_" + Date.now(),
+                    date: new Date().toLocaleString(),
+                    subject: this.currentExamSubject,
+                    score,
+                    correctCount,
+                    total,
+                    answers: detailedAnswers
+                };
+
+                this.saveHistory(payload);
+                this.saveWrongItems(wrongItems);
+
+                if (this.cloudService && this.currentUser) {
+                    this.cloudService.overwriteCloud(
+                        this.currentUser.uid, 
+                        this.getLocalWrongBook(), 
+                        this.getLocalHistory()
+                    ).catch(e => console.warn("背景上傳雲端失敗:", e));
+                }
+
+                const subNameEl = document.getElementById('result-subject-name');
+                const scoreEl = document.getElementById('result-score');
+                const correctCountEl = document.getElementById('result-correct-count');
+                if (subNameEl) subNameEl.textContent = `${this.currentExamSubject} (滿分 100 分)`;
+                if (scoreEl) scoreEl.textContent = score;
+                if (correctCountEl) correctCountEl.textContent = `${correctCount} / ${total}`;
+
+                const passContainer = document.getElementById('pass-status-container');
+                const actionBtn = document.getElementById('result-action-btn');
+                const mainTitleEl = document.getElementById('result-main-title');
+
+                if (this.examMode === 'practice') {
+                    if (mainTitleEl) mainTitleEl.textContent = '📖 單科練習成績結算';
+                    if (passContainer) {
+                        passContainer.innerHTML = `
+                            <div class="p-4 rounded-xl border bg-indigo-50 text-indigo-900 border-indigo-200 text-center space-y-1">
+                                <div class="font-bold text-lg">💡 單科練習模式已完成交卷</div>
+                                <div class="text-xs text-indigo-700">本次練習成績已自動記錄至「歷史作答記錄」與「錯題本」。</div>
+                            </div>
+                        `;
+                    }
+                    if (actionBtn) {
+                        actionBtn.textContent = '返回首頁';
+                        actionBtn.onclick = () => this.switchTab('home');
+                    }
+                } else {
+                    if (this.officialStage === 1) {
+                        this.officialScores['食品品保概論'] = score;
+                        if (mainTitleEl) mainTitleEl.textContent = '【正式考試】科目一結算';
+                        const isPassed = score >= 60;
+                        if (passContainer) {
+                            passContainer.innerHTML = `
+                                <div class="p-4 rounded-xl border ${isPassed ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-red-100 text-red-800 border-red-300'} text-center space-y-1">
+                                    <div class="font-bold text-lg">${isPassed ? '✅ 科目一順利通過！' : '❌ 科目一未達 60 分門檻'}</div>
+                                    <div class="text-xs text-slate-600">準備進入科目二：食品科學概論（66題）</div>
+                                </div>
+                            `;
+                        }
+                        if (actionBtn) {
+                            actionBtn.textContent = '開始考科目二 (食品科學概論)';
+                            actionBtn.onclick = () => {
+                                this.officialStage = 2;
+                                this.initExamForSubject('食品科學概論');
+                            };
+                        }
+                    } else {
+                        this.officialScores['食品科學概論'] = score;
+                        if (mainTitleEl) mainTitleEl.textContent = '🏆 正式模擬考總結算與資格審核';
+                        
+                        const s1 = this.officialScores['食品品保概論'];
+                        const s2 = this.officialScores['食品科學概論'];
+                        const avgScore = Math.round(((s1 + s2) / 2) * 10) / 10;
+                        const p1 = s1 >= 60;
+                        const p2 = s2 >= 60;
+                        const pAvg = avgScore >= 70;
+                        const isTotalPassed = p1 && p2 && pAvg;
+
+                        if (passContainer) {
+                            passContainer.innerHTML = `
+                                <div class="p-4 rounded-xl border ${isTotalPassed ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-red-100 text-red-800 border-red-300'} text-center space-y-2">
+                                    <div class="font-bold text-lg">${isTotalPassed ? '🎉 恭喜通過正式國家級鑑定標準！' : '⚠️ 未完全達標，請繼續加油！'}</div>
+                                    <div class="text-xs space-y-1 text-left bg-white p-3 rounded-lg border border-slate-200">
+                                        <div>• 食品品保概論：${s1}分 ${p1 ? '✅' : '❌ (需 >= 60)'}</div>
+                                        <div>• 食品科學概論：${s2}分 ${p2 ? '✅' : '❌ (需 >= 60)'}</div>
+                                        <div>• 雙科平均分數：${avgScore}分 ${pAvg ? '✅' : '❌ (需 >= 70)'}</div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        if (actionBtn) {
+                            actionBtn.textContent = '返回首頁';
+                            actionBtn.onclick = () => this.switchTab('home');
+                        }
+                    }
+                }
+
+                this.switchTab('result');
+            }
+
+            getLocalHistory() {
+                if (this.isResetting) return [];
+                try {
+                    const data = localStorage.getItem('ipas_history_v15');
+                    return data ? JSON.parse(data) : [];
+                } catch(e) {
+                    return [];
+                }
+            }
+
+            saveHistory(record) {
+                let history = this.getLocalHistory();
+                history.unshift(record);
+                localStorage.setItem('ipas_history_v15', JSON.stringify(history));
+            }
+
+            getLocalWrongBook() {
+                if (this.isResetting) return [];
+                try {
+                    const data = localStorage.getItem('ipas_wrong_book_v15');
+                    return data ? JSON.parse(data) : [];
+                } catch(e) {
+                    return [];
+                }
+            }
+
+            saveWrongItems(newWrongs) {
+                let wrongs = this.getLocalWrongBook();
+                newWrongs.forEach(nw => {
+                    if (!wrongs.some(w => w.id === nw.id || w.q === nw.q)) wrongs.push(nw);
+                });
+                localStorage.setItem('ipas_wrong_book_v15', JSON.stringify(wrongs));
+            }
+
+            renderWrongBook() {
+                const wrongs = this.getLocalWrongBook();
+                const container = document.getElementById('wrong-list-container');
+                if (!container) return;
+
+                if (wrongs.length === 0) {
+                    container.innerHTML = `<div class="bg-white p-8 rounded-2xl text-center text-slate-400">目前沒有累積錯題，太棒了！</div>`;
+                    return;
+                }
+
+                let html = '';
+                wrongs.forEach((item) => {
+                    let optsHtml = '';
+                    if (item.options && Array.isArray(item.options)) {
+                        item.options.forEach((opt, oIdx) => {
+                            let color = 'border-slate-100 text-slate-700';
+                            if (oIdx === item.answer) color = 'bg-emerald-50 border-emerald-300 text-emerald-800 font-bold';
+                            else if (oIdx === item.userAns) color = 'bg-red-50 border-red-300 text-red-800';
+                            optsHtml += `<div class="p-3 border rounded-xl text-sm ${color}">${this.sanitizeInput(opt)}</div>`;
+                        });
+                    }
+
+                    const cleanQ = stripQuestionPrefix(item.q);
+
+                    html += `
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+                            <div class="flex justify-between items-center">
+                                <span class="bg-red-100 text-red-800 text-xs font-bold px-3 py-1 rounded-full">分類：${this.sanitizeInput(item.topic)}</span>
+                                <button onclick="app.removeWrongItem('${item.id}')" class="text-xs text-slate-400 hover:text-red-600 cursor-pointer">從錯題本移除</button>
+                            </div>
+                            <div class="font-bold text-slate-800 text-lg">${this.sanitizeInput(cleanQ)}</div>
+                            <div class="space-y-2">${optsHtml}</div>
+                            <div class="bg-indigo-50 p-4 rounded-xl text-sm text-indigo-900">
+                                <span class="font-bold">💡 考綱解析：</span>${this.sanitizeInput(item.explanation)}
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            }
+
+            removeWrongItem(id) {
+                let wrongs = this.getLocalWrongBook();
+                wrongs = wrongs.filter(w => w.id !== id);
+                localStorage.setItem('ipas_wrong_book_v15', JSON.stringify(wrongs));
+                
+                if (this.cloudService && this.currentUser) {
+                    this.cloudService.overwriteCloud(
+                        this.currentUser.uid, 
+                        wrongs, 
+                        this.getLocalHistory()
+                    ).catch(e => console.warn(e));
+                }
+
+                this.renderWrongBook();
+                this.fetchWrongBookData();
+            }
+
+            renderHistoryTable() {
+                const history = this.getLocalHistory();
+                const tbody = document.getElementById('history-table-body');
+                if (!tbody) return;
+
+                if (history.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">尚無測驗記錄</td></tr>`;
+                    return;
+                }
+
+                let html = '';
+                history.forEach((h, idx) => {
+                    let isPassed = h.score >= 60;
+                    let statusBadge = isPassed ? '<span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-0.5 rounded">及格</span>' : '<span class="bg-red-100 text-red-800 text-xs font-bold px-2 py-0.5 rounded">未過</span>';
+                    html += `
+                        <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                            <td class="p-4 text-slate-600">${h.date}</td>
+                            <td class="p-4 font-bold text-slate-800">${h.subject}</td>
+                            <td class="p-4 font-mono font-extrabold text-indigo-600">${h.score} 分 ${statusBadge}</td>
+                            <td class="p-4 text-slate-600">${h.correctCount} / ${h.total} 題</td>
+                            <td class="p-4 text-right">
+                                <button onclick="app.viewHistoryDetail(${idx})" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-1.5 rounded-lg transition cursor-pointer">查看詳情</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = html;
+            }
+
+            viewHistoryDetail(index) {
+                const history = this.getLocalHistory();
+                const record = history[index];
+                if (!record) return;
+
+                const content = document.getElementById('history-detail-content');
+                if (!content) return;
+
+                let html = `<div class="space-y-2"><h4 class="font-bold text-lg text-slate-800">${record.subject} - 試卷詳情</h4><p class="text-xs text-slate-400">交卷時間：${record.date} | 得分：${record.score} 分</p></div>`;
+
+                if (record.answers && Array.isArray(record.answers)) {
+                    record.answers.forEach((ans, idx) => {
+                        let badge = ans.isCorrect ? '<span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-0.5 rounded">答對</span>' : '<span class="bg-red-100 text-red-800 text-xs font-bold px-2 py-0.5 rounded">答錯</span>';
+                        let userChoiceText = (ans.userAns !== undefined && ans.userAns >= 0 && ans.options) 
+                            ? this.sanitizeInput(ans.options[ans.userAns]) 
+                            : '未作答';
+                        const cleanQ = stripQuestionPrefix(ans.q);
+
+                        html += `
+                            <div class="bg-slate-50 p-4 rounded-xl space-y-2 border border-slate-100">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-xs font-bold text-indigo-600">第 ${idx + 1} 題 [${ans.topic}]</span>
+                                    ${badge}
+                                </div>
+                                <div class="font-bold text-slate-800 text-sm">${this.sanitizeInput(cleanQ)}</div>
+                                <div class="text-xs text-slate-600">您的選擇：${userChoiceText}</div>
+                                <div class="text-xs font-bold text-emerald-700">正確答案：${ans.options ? this.sanitizeInput(ans.options[ans.answer]) : ''}</div>
+                            </div>
+                        `;
+                    });
+                }
+
+                content.innerHTML = html;
+                const modal = document.getElementById('history-detail-modal');
+                if (modal) modal.classList.remove('hidden');
+            }
+
+            closeHistoryDetailModal() {
+                const modal = document.getElementById('history-detail-modal');
+                if (modal) modal.classList.add('hidden');
+            }
+
+            openRadarModal() {
+                const modal = document.getElementById('radar-modal');
+                if (modal) modal.classList.remove('hidden');
+                setTimeout(() => this.initRadarChart(), 100);
+            }
+
+            closeRadarModal() {
+                const modal = document.getElementById('radar-modal');
+                if (modal) modal.classList.add('hidden');
+            }
+
+            initRadarChart() {
+                const canvas = document.getElementById('radarCanvas');
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                if (this.radarChartInstance) this.radarChartInstance.destroy();
+
+                const selectEl = document.getElementById('radar-subject-select');
+                const subject = selectEl ? selectEl.value : '食品品保概論';
+                let labels = subject === '食品品保概論' 
+                    ? ['法規與GHP', 'HACCP危害分析', '追溯與標示', '品保基礎與名詞', '食安文化與事件', '數位轉型']
+                    : ['食品化學', '食品微生物', '檢驗與分析', '加工與保存', '中毒菌管制'];
+                let personalData = [85, 80, 88, 75, 90, 82];
+                let baselineData = [75, 72, 78, 70, 80, 76];
+
+                this.radarChartInstance = new Chart(ctx, {
+                    type: 'radar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: '個人表現',
+                                data: personalData,
+                                backgroundColor: 'rgba(79, 70, 229, 0.2)',
+                                borderColor: 'rgb(79, 70, 229)',
+                                pointBackgroundColor: 'rgb(79, 70, 229)',
+                                borderWidth: 2
+                            },
+                            {
+                                label: '全國平均基準線',
+                                data: baselineData,
+                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                borderColor: 'rgb(16, 185, 129)',
+                                pointBackgroundColor: 'rgb(16, 185, 129)',
+                                borderDash: [4, 4],
+                                borderWidth: 2
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { r: { suggestMin: 0, suggestMax: 100, ticks: { stepSize: 20 } } },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+
+            updateRadarChart() {
+                this.initRadarChart();
+            }
+        }
+
+        const app = new IPASApp();
+        window.app = app;
+    </script>
+
+    <!-- 雲端帳號與錯題資料同步模組 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { 
+            getAuth, 
+            signInWithPopup, 
+            GoogleAuthProvider, 
+            signInWithEmailAndPassword, 
+            createUserWithEmailAndPassword, 
+            signOut, 
+            onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { 
+            getFirestore, 
+            doc, 
+            getDoc, 
+            setDoc 
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDhxgX8fVx0Ts3CppPYonzuHujkFvbO8O4",
+            authDomain: "ipas-exam-system.firebaseapp.com",
+            projectId: "ipas-exam-system",
+            storageBucket: "ipas-exam-system.firebasestorage.app",
+            messagingSenderId: "396493449842",
+            appId: "1:396493449842:web:ba1bb19ac782c6660770eb",
+            measurementId: "G-19GFJ325ZS"
+        };
+
+        try {
+            const fbApp = initializeApp(firebaseConfig);
+            const auth = getAuth(fbApp);
+            const db = getFirestore(fbApp);
+
+            const cloudService = {
+                async loginGoogle() {
+                    try {
+                        const provider = new GoogleAuthProvider();
+                        const cred = await signInWithPopup(auth, provider);
+                        return cred.user;
+                    } catch (err) {
+                        alert("Google 登入失敗：" + err.message);
+                        return null;
+                    }
+                },
+                async loginEmail(email, password) {
+                    try {
+                        const cred = await signInWithEmailAndPassword(auth, email, password);
+                        return cred.user;
+                    } catch (err) {
+                        if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+                            try {
+                                const regCred = await createUserWithEmailAndPassword(auth, email, password);
+                                alert("已自動為您建立新帳號並登入！");
+                                return regCred.user;
+                            } catch (regErr) {
+                                alert("註冊失敗：" + regErr.message);
+                                return null;
+                            }
+                        } else {
+                            alert("登入失敗：" + err.message);
+                            return null;
+                        }
+                    }
+                },
+                async logout() {
+                    await signOut(auth);
+                },
+                async syncData(uid, localWrongs, localHistory) {
+                    if (window.app && window.app.isResetting) return null;
+                    const userDocRef = doc(db, "ipas_users", uid);
+                    const snap = await getDoc(userDocRef);
+                    if (window.app && window.app.isResetting) return null;
+                    
+                    let cloudWrongs = [];
+                    let cloudHistory = [];
+
+                    if (snap.exists()) {
+                        const data = snap.data();
+                        cloudWrongs = Array.isArray(data.wrongs) ? data.wrongs : [];
+                        cloudHistory = Array.isArray(data.history) ? data.history : [];
+                    }
+
+                    const mergedWrongs = [...cloudWrongs];
+                    localWrongs.forEach(lw => {
+                        if (!mergedWrongs.some(cw => cw.id === lw.id || cw.q === lw.q)) {
+                            mergedWrongs.push(lw);
+                        }
+                    });
+
+                    const mergedHistory = [...cloudHistory];
+                    localHistory.forEach(lh => {
+                        const key = lh.id || lh.date;
+                        if (!mergedHistory.some(ch => (ch.id || ch.date) === key)) {
+                            mergedHistory.push(lh);
+                        }
+                    });
+
+                    await setDoc(userDocRef, {
+                        wrongs: mergedWrongs,
+                        history: mergedHistory,
+                        updatedAt: new Date().toISOString()
+                    }, { merge: true });
+
+                    return { wrongs: mergedWrongs, history: mergedHistory };
+                },
+                async overwriteCloud(uid, wrongs, history) {
+                    const userDocRef = doc(db, "ipas_users", uid);
+                    await setDoc(userDocRef, {
+                        wrongs: wrongs,
+                        history: history,
+                        updatedAt: new Date().toISOString()
+                    });
+                }
+            };
+
+            window.app.attachCloudService(cloudService);
+
+            onAuthStateChanged(auth, (user) => {
+                window.app.handleAuthChecked(user);
+            });
+
+        } catch (error) {
+            console.warn("Firebase 模組初始化失敗:", error);
+            window.app.handleAuthChecked(null);
+        }
+    </script>
+</body>
+</html>
